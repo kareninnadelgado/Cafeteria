@@ -1,0 +1,65 @@
+@page "/login"
+@rendermode InteractiveServer
+@inject Cafeteria.Services.FirebaseAuthService AuthService
+@inject NavigationManager Navigation
+
+<div class="container d-flex justify-content-center align-items-center" style="min-height: 80vh;">
+    <div class="card p-4 shadow-sm" style="width: 100%; max-width: 400px; border-radius: 12px;">
+        <h2 class="text-center mb-4">Iniciar Sesión</h2>
+        
+        @if (!string.IsNullOrEmpty(errorMessage))
+        {
+            <div class="alert alert-danger p-2 small text-center">@errorMessage</div>
+        }
+
+        <EditForm Model="loginModel" OnValidSubmit="HandleLogin">
+            <DataAnnotationsValidator />
+            
+            <div class="mb-3">
+                <label class="form-label">Correo electrónico</label>
+                <InputText @bind-Value="loginModel.Email" class="form-control" placeholder="ejemplo@correo.com" type="email" />
+            </div>
+            
+            <div class="mb-3">
+                <label class="form-label">Contraseña</label>
+                <InputText @bind-Value="loginModel.Password" class="form-control" placeholder="******" type="password" />
+            </div>
+            
+            <button type="submit" class="btn btn-primary w-100 fw-bold py-2 mt-2">Ingresar</button>
+        </EditForm>
+        
+        <p class="text-center mt-4 mb-0">
+            ¿No tienes cuenta? <a href="/register" class="text-decoration-none fw-bold">Regístrate aquí</a>
+        </p>
+    </div>
+</div>
+
+@code {
+    private LoginClass loginModel = new LoginClass();
+    private string errorMessage = string.Empty;
+
+    private async Task HandleLogin()
+    {
+        errorMessage = string.Empty;
+
+        // LLAMAMOS A TU MÉTODO LOGIN
+        var respuestaJson = await AuthService.Login(loginModel.Email, loginModel.Password);
+
+        if (respuestaJson.Contains("idToken"))
+        {
+            Console.WriteLine("¡Sesión iniciada con éxito!");
+            Navigation.NavigateTo("/"); // Te manda al index de la cafetería
+        }
+        else
+        {
+            errorMessage = "Credenciales incorrectas o el usuario no existe.";
+            Console.WriteLine($"Error de Firebase: {respuestaJson}");
+        }
+    }
+
+    public class LoginClass
+    {
+        public string Email { get; set; } = string.Empty;
+        public string Password { get; set; } = string.Empty;
+    }
+}

@@ -1,0 +1,10 @@
+{
+  "version": 2,
+  "dgSpecHash": "wl/Ew5DBbf8=",
+  "success": true,
+  "projectFilePath": "C:\\Users\\karen\\Cafeteria\\Cafeteria.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\karen\\.nuget\\packages\\microsoft.aspnetcore.app.internal.assets\\10.0.7\\microsoft.aspnetcore.app.internal.assets.10.0.7.nupkg.sha512"
+  ],
+  "logs": []
+}

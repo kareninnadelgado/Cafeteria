@@ -1,0 +1,11 @@
+## Carpetas de compilación de .NET
+bin/
+obj/
+
+## Archivos de configuración local de VS Code o Visual Studio
+.vscode/
+.vs/
+*.user
+
+## Respuestas temporales o logs
+*.log

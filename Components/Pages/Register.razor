@@ -1,0 +1,131 @@
+@page "/register"
+@rendermode InteractiveServer
+@inject Cafeteria.Services.FirebaseAuthService AuthService
+@inject NavigationManager Navigation
+@using System.ComponentModel.DataAnnotations
+@using System.Text.Json
+
+<div class="container d-flex justify-content-center align-items-center" style="min-height: 80vh;">
+    <div class="card p-4 shadow-sm" style="width: 100%; max-width: 400px; border-radius: 12px;">
+        <h2 class="text-center mb-4">Crear Cuenta</h2>
+        
+        @if (!string.IsNullOrEmpty(errorMessage))
+        {
+            <div class="alert alert-danger p-2 small text-center">@errorMessage</div>
+        }
+        
+        <!-- Cambiamos OnValidSubmit por OnSubmit para validar manualmente en C# -->
+        <EditForm EditContext="editContext" OnSubmit="HandleRegister">
+            <DataAnnotationsValidator />
+            
+            <!-- Campo Nombre -->
+            <div class="mb-3">
+                <label class="form-label">Nombre Completo</label>
+                <InputText @bind-Value="registerModel.Name" class="form-control" placeholder="Tu nombre" />
+                <ValidationMessage For="() => registerModel.Name" class="text-danger small mt-1" />
+            </div>
+
+            <!-- Campo Correo -->
+            <div class="mb-3">
+                <label class="form-label">Correo electrónico</label>
+                <InputText @bind-Value="registerModel.Email" class="form-control" placeholder="ejemplo@correo.com" type="email" />
+                <ValidationMessage For="() => registerModel.Email" class="text-danger small mt-1" />
+            </div>
+            
+            <!-- Campo Contraseña -->
+            <div class="mb-3">
+                <label class="form-label">Contraseña</label>
+                <InputText @bind-Value="registerModel.Password" class="form-control" placeholder="Mínimo 8 caracteres, 1 mayúscula y 1 símbolo" type="password" />
+                <ValidationMessage For="() => registerModel.Password" class="text-danger small mt-1" />
+            </div>
+            
+            <button type="submit" class="btn btn-success w-100 fw-bold py-2 mt-2">Registrarse</button>
+        </EditForm>
+        
+        <p class="text-center mt-4 mb-0">
+            ¿Ya tienes cuenta? <a href="/login" class="text-decoration-none fw-bold">Inicia sesión</a>
+        </p>
+    </div>
+</div>
+
+@code {
+    private RegisterClass registerModel = new RegisterClass();
+    private EditContext? editContext;
+    private string errorMessage = string.Empty;
+
+    // Inicializamos el contexto de validación al cargar el componente
+    protected override void OnInitialized()
+    {
+        editContext = new EditContext(registerModel);
+    }
+
+    private async Task HandleRegister()
+{
+    errorMessage = string.Empty;
+
+    if (editContext == null || !editContext.Validate())
+    {
+        errorMessage = "Por favor, corrige los errores en los campos antes de continuar.";
+        return;
+    }
+
+    try
+    {
+        // Paso 1: Intentar crear el usuario en Firebase Authentication
+        var respuestaJson = await AuthService.Register(registerModel.Email, registerModel.Password);
+        
+        if (respuestaJson.Contains("idToken"))
+        {
+            // Extraemos el localId (UID) que nos devolvió Firebase de forma rápida usando JsonDocument
+            using var doc = JsonDocument.Parse(respuestaJson);
+            string uid = doc.RootElement.GetProperty("localId").GetString() ?? "";
+
+            if (!string.IsNullOrEmpty(uid))
+            {
+                // Paso 2: Hacer el INSERT en Firestore usando ese UID
+                bool perfilCreado = await AuthService.CrearPerfilUsuario(uid, registerModel.Name, registerModel.Email);
+
+                if (perfilCreado)
+                {
+                    Console.WriteLine("¡Usuario guardado en la Base de Datos con éxito!");
+                    Navigation.NavigateTo("/login");
+                }
+                else
+                {
+                    errorMessage = "Cuenta creada, pero hubo un error al guardar los datos en la base de datos.";
+                }
+            }
+        }
+        else if (respuestaJson.Contains("EMAIL_EXISTS"))
+        {
+            errorMessage = "El correo electrónico ya está en uso por otra cuenta.";
+        }
+        else
+        {
+            errorMessage = "Hubo un problema al registrar la cuenta.";
+            Console.WriteLine($"Error raw de Firebase: {respuestaJson}");
+        }
+    }
+    catch (Exception ex)
+    {
+        errorMessage = "No se pudo conectar con el servidor.";
+        Console.WriteLine($"Error: {ex.Message}");
+    }
+}
+
+    public class RegisterClass
+    {
+        [Required(ErrorMessage = "El nombre es obligatorio.")]
+        public string Name { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "El correo electrónico es obligatorio.")]
+        [EmailAddress(ErrorMessage = "Correo inválido. Debe incluir '@' y un dominio válido.")]
+        public string Email { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "La contraseña es obligatoria.")]
+        [MinLength(8, ErrorMessage = "La contraseña debe tener un mínimo de 8 caracteres.")]
+        [RegularExpression(@"^(?=.*[A-Z])(?=.*[^a-zA-Z0-9]).{8,}$", 
+            ErrorMessage = "La contraseña debe incluir al menos una mayúscula y un símbolo especial (ej. #, $, @).")]
+        public string Password { get; set; } = string.Empty;
+    }
+}
