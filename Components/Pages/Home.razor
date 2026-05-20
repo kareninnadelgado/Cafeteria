@@ -5,60 +5,97 @@
 @inject Cafeteria.Services.AuthStateService AuthState
 @inject NavigationManager Navigation
 
-<PageTitle>Cafetería Escolar</PageTitle>
+<PageTitle>Cafetería Escolar - Material Design</PageTitle>
 
-<MudContainer MaxWidth="MaxWidth.Medium" Class="mt-4">
-    <MudText Typo="Typo.h3" Class="mb-2 text-center">Bienvenido a la Cafetería</MudText>
-    <MudText Typo="Typo.subtitle2" Class="mb-4 text-center text-muted">Selecciona una categoría para ver los productos</MudText>
+<MudThemeProvider />
+<MudLayout>
+    <MudContainer MaxWidth="MaxWidth.Small" Class="py-4">
+        <MudStack Spacing="3" Justify="Justify.Center" AlignItems="AlignItems.Center">
+            <MudText Typo="Typo.h4" Align="Align.Center" Color="Color.Primary" Class="font-weight-bold">
+                Cafetería Escolar
+            </MudText>
+            <MudText Typo="Typo.subtitle2" Align="Align.Center" Color="Color.Default">
+                Selecciona una categoría
+            </MudText>
+        </MudStack>
 
-    @if (cargando)
-    {
-        <div class="d-flex justify-content-center">
-            <MudProgressCircular Indeterminate Color="Color.Primary" />
-        </div>
-    }
-    else if (categorias.Count == 0)
-    {
-        <MudAlert Severity="Severity.Info">No hay categorías disponibles.</MudAlert>
-    }
-    else
-    {
-        <MudGrid>
-            @foreach (var categoria in categorias)
-            {
-                <MudItem xs="12" sm="6" md="4">
-                    <MudCard Elevation="3" Class="category-card" Style="cursor: pointer; height: 100%;" @onclick="() => IrAMenu(categoria)">
-                        <MudCardContent Class="text-center pa-6">
-                            <MudIcon Icon="@ObtenerIconoCategoria(categoria)" Size="Size.Large" Color="Color.Primary" Class="mb-3" Style="font-size: 48px;" />
-                            <MudText Typo="Typo.h5" Class="mb-2">@categoria</MudText>
-                            <MudText Typo="Typo.body2" Class="text-muted">
-                                Ver todos los productos de esta categoría
-                            </MudText>
-                        </MudCardContent>
-                    </MudCard>
-                </MudItem>
-            }
-        </MudGrid>
-    }
-    
-    <!-- Botón de Admin Tools solo visible para admin -->
-    @if (esAdmin)
-    {
-        <div class="text-center mt-5">
-            <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Large" StartIcon="@Icons.Material.Filled.AdminPanelSettings" OnClick='() => Navigation.NavigateTo("/admin-tools")'>
-                Admin Tools
-            </MudButton>
-        </div>
-    }
-</MudContainer>
+        @if (cargando)
+        {
+            <div class="d-flex justify-content-center mt-8">
+                <MudProgressCircular Indeterminate Color="Color.Primary" Size="Size.Large" />
+            </div>
+        }
+        else if (categorias.Count == 0)
+        {
+            <MudAlert Severity="Severity.Info" Class="mt-4">
+                <MudIcon Icon="@Icons.Material.Filled.Info" /> No hay categorías disponibles.
+            </MudAlert>
+        }
+        else
+        {
+            <MudGrid Spacing="3" Justify="Justify.Center">
+                @foreach (var categoria in categorias)
+                {
+                    <MudItem xs="12" sm="6" md="4">
+                        <MudCard 
+                            Elevation="2" 
+                            ElevationHover="6"
+                            Class="category-card"
+                            Style="cursor: pointer; height: 100%; border-radius: 16px; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);"
+                            @onclick="() => IrAMenu(categoria)">
+                            
+                            <MudCardContent Class="pa-6 text-center">
+                                <MudIcon 
+                                    Icon="@ObtenerIconoCategoria(categoria)" 
+                                    Size="Size.Large" 
+                                    Color="Color.Primary" 
+                                    Class="mb-3" 
+                                />
+                                <MudText Typo="Typo.h6" Class="mb-2 font-weight-medium">
+                                    @categoria
+                                </MudText>
+                                <MudText Typo="Typo.body2" Color="Color.Default" Class="text-muted">
+                                    Ver productos →
+                                </MudText>
+                            </MudCardContent>
+                        </MudCard>
+                    </MudItem>
+                }
+            </MudGrid>
+        }
+
+        @if (esAdmin)
+        {
+            <div class="text-center mt-8">
+                <MudButton 
+                    Variant="Variant.Filled" 
+                    Color="Color.Secondary" 
+                    Size="Size.Large" 
+                    StartIcon="@Icons.Material.Filled.AdminPanelSettings"
+                    OnClick='() => Navigation.NavigateTo("/admin-tools")'>
+                    Panel de Administración
+                </MudButton>
+            </div>
+        }
+    </MudContainer>
+</MudLayout>
 
 <style>
+    /* Base: 8dp grid de Material Design */
     .category-card {
-        transition: transform 0.2s, box-shadow 0.2s;
+        background: var(--mud-palette-surface);
+        border: 1px solid var(--mud-palette-lines-default);
     }
-    .category-card:hover {
-        transform: translateY(-4px);
-        box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+    
+    /* Feedback táctil (Material Design guideline) */
+    .category-card:active {
+        transform: scale(0.98);
+    }
+    
+    /* Mejora de accesibilidad */
+    .mud-button-root:focus-visible {
+        outline: 2px solid var(--mud-palette-primary);
+        outline-offset: 2px;
     }
 </style>
 
@@ -80,7 +117,7 @@
         cargando = false;
         StateHasChanged();
     }
-    
+
     private async Task CargarEstadoAdmin()
     {
         await AuthState.CargarSesionDesdeLocalStorage();

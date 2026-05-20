@@ -6,134 +6,200 @@
 @inject NavigationManager Navigation
 @inject Cafeteria.Services.AuthStateService AuthState
 
-@if (verificando)
-{
-    <div class="text-center py-5">
-        <div class="spinner-border text-primary" role="status"></div>
-        <p class="mt-2">Verificando acceso...</p>
-    </div>
-}
-else if (!esAdmin)
-{
-    <div class="alert alert-danger py-5 text-center">
-        <h3>Acceso Denegado</h3>
-        <p>No tienes permisos para acceder a esta página.</p>
-    </div>
-}
-else
-{
-    <MudContainer MaxWidth="MaxWidth.Small" Class="mt-4">
-        <MudCard Elevation="3">
-            <MudCardContent>
-                <MudText Typo="Typo.h4" Class="mb-1">➕ Añadir Producto</MudText>
-                <MudText Typo="Typo.subtitle2" Class="mb-4 text-muted">Agrega un nuevo producto al menú</MudText>
+<MudThemeProvider />
+<MudLayout>
+    <MudContainer MaxWidth="MaxWidth.Small" Class="py-4">
+        
+        @if (verificando)
+        {
+            <div class="d-flex justify-content-center mt-8">
+                <MudProgressCircular Indeterminate Color="Color.Primary" Size="Size.Large" />
+                <MudText Typo="Typo.body2" Color="Color.Default" Class="mt-3 text-center">
+                    Verificando acceso...
+                </MudText>
+            </div>
+        }
+        else if (!esAdmin)
+        {
+            <MudPaper Class="pa-6 text-center" Style="border-radius: 20px;">
+                <MudIcon Icon="@Icons.Material.Filled.Lock" Size="Size.Large" Color="Color.Error" Class="mb-3" Style="font-size: 64px;" />
+                <MudText Typo="Typo.h4" Color="Color.Error" Class="mb-2 font-weight-bold">
+                    Acceso Denegado
+                </MudText>
+                <MudText Typo="Typo.body1" Color="Color.Default" Class="mb-4">
+                    No tienes permisos para acceder a esta página.
+                </MudText>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick='() => Navigation.NavigateTo("/")' Size="Size.Large">
+                    <MudIcon Icon="@Icons.Material.Filled.ArrowBack" Class="mr-2" /> Volver al Menú
+                </MudButton>
+            </MudPaper>
+        }
+        else
+        {
+            <MudCard Elevation="3" Style="border-radius: 20px; overflow: hidden;">
+                <MudCardContent Class="pa-6">
+                    <MudStack AlignItems="AlignItems.Center" Class="mb-3">
+                        <MudIcon Icon="@Icons.Material.Filled.AddCircle" Color="Color.Primary" Size="Size.Large" Style="font-size: 48px;" />
+                        <MudText Typo="Typo.h4" Class="font-weight-bold">Añadir Producto</MudText>
+                        <MudText Typo="Typo.subtitle2" Color="Color.Default">Agrega un nuevo producto al menú</MudText>
+                    </MudStack>
 
-                <MudDivider Class="mb-4" />
+                    <MudDivider Class="my-4" />
 
-                <MudGrid>
-                    <!-- Nombre -->
-                    <MudItem xs="12">
-                        <MudText Typo="Typo.subtitle2" Class="mb-1">Nombre del producto *</MudText>
-                        <input type="text" class="mud-input mud-input-outlined mud-input-root" style="width: 100%; padding: 12px; border-radius: 4px; border: 1px solid #d9d9d9;" @bind="nuevoProducto.Nombre" placeholder="Ej: Café Americano" />
-                    </MudItem>
+                    <MudGrid Spacing="3">
+                        <!-- Nombre -->
+                        <MudItem xs="12">
+                            <MudText Typo="Typo.subtitle2" Class="mb-2 font-weight-medium">Nombre del producto *</MudText>
+                            <MudTextField T="string" 
+                                          @bind-Value="nuevoProducto.Nombre"
+                                          Placeholder="Ej: Café Americano"
+                                          Variant="Variant.Outlined"
+                                          FullWidth="true"
+                                          Immediate="true" />
+                        </MudItem>
 
-                    <!-- Categoría - Seleccionar existente o nueva -->
-                    <MudItem xs="12">
-                        <MudText Typo="Typo.subtitle2" Class="mb-1">Categoría *</MudText>
-                        
-                        <!-- Selector de categorías existentes -->
-                        <select class="mud-input mud-input-outlined mud-input-root" style="width: 100%; padding: 12px; border-radius: 4px; border: 1px solid #d9d9d9; margin-bottom: 10px;" @bind="categoriaSeleccionada" @bind:event="oninput" @onchange="CambiarCategoria">
-                            <option value="">-- Selecciona una categoría existente --</option>
-                            @foreach (var cat in categoriasExistentes)
+                        <!-- Categoría -->
+                        <MudItem xs="12">
+                            <MudText Typo="Typo.subtitle2" Class="mb-2 font-weight-medium">Categoría *</MudText>
+                            
+                            <!-- Selector de categorías existentes -->
+                            <select class="mud-input mud-input-outlined mud-input-root" style="width: 100%; padding: 12px; border-radius: 4px; border: 1px solid #d9d9d9; margin-bottom: 10px;" @bind="categoriaSeleccionada" @bind:event="oninput" @onchange="CambiarCategoria">
+                                <option value="">-- Selecciona una categoría existente --</option>
+                                @foreach (var cat in categoriasExistentes)
+                                {
+                                    <option value="@cat">@cat</option>
+                                }
+                                <option value="__OTRA__">-- Escribir nueva categoría --</option>
+                            </select>
+
+                            @if (mostrarNuevaCategoria)
                             {
-                                <option value="@cat">@cat</option>
+                                <MudTextField T="string" 
+                                              @bind-Value="nuevaCategoria"
+                                              Placeholder="Escribe la nueva categoría"
+                                              Variant="Variant.Outlined"
+                                              FullWidth="true"
+                                              Class="mt-3" />
                             }
-                            <option value="__OTRA__">-- Escribir nueva categoría --</option>
-                        </select>
+                        </MudItem>
 
-                        <!-- Input para nueva categoría (se muestra solo cuando se selecciona "Otra") -->
-                        @if (mostrarNuevaCategoria)
-                        {
-                            <input type="text" class="mud-input mud-input-outlined mud-input-root" style="width: 100%; padding: 12px; border-radius: 4px; border: 1px solid #d9d9d9; margin-top: 8px;" @bind="nuevaCategoria" placeholder="Escribe la nueva categoría" />
-                        }
-                    </MudItem>
+                        <!-- Precio -->
+                        <MudItem xs="12">
+                            <MudText Typo="Typo.subtitle2" Class="mb-1">Precio *</MudText>
+                            <input type="number" step="0.01" min="0" class="mud-input mud-input-outlined mud-input-root" style="width: 100%; padding: 12px; border-radius: 4px; border: 1px solid #d9d9d9;" @bind="nuevoProducto.Precio" placeholder="0.00" />
+                        </MudItem>
 
-                    <!-- Precio -->
-                    <MudItem xs="12">
-                        <MudText Typo="Typo.subtitle2" Class="mb-1">Precio *</MudText>
-                        <input type="number" step="0.01" min="0" class="mud-input mud-input-outlined mud-input-root" style="width: 100%; padding: 12px; border-radius: 4px; border: 1px solid #d9d9d9;" @bind="nuevoProducto.Precio" placeholder="0.00" />
-                    </MudItem>
+                        <!-- Descripción -->
+                        <MudItem xs="12">
+                            <MudText Typo="Typo.subtitle2" Class="mb-2 font-weight-medium">Descripción</MudText>
+                            <MudTextField T="string" 
+                                          @bind-Value="nuevoProducto.Descripcion"
+                                          Placeholder="Descripción breve del producto"
+                                          Variant="Variant.Outlined"
+                                          FullWidth="true"
+                                          Lines="3" />
+                        </MudItem>
 
-                    <!-- Descripción -->
-                    <MudItem xs="12">
-                        <MudText Typo="Typo.subtitle2" Class="mb-1">Descripción</MudText>
-                        <textarea class="mud-input mud-input-outlined mud-input-root" rows="3" style="width: 100%; padding: 12px; border-radius: 4px; border: 1px solid #d9d9d9;" @bind="nuevoProducto.Descripcion" placeholder="Descripción breve del producto"></textarea>
-                    </MudItem>
+                        <!-- URL Imagen -->
+                        <MudItem xs="12">
+                            <MudText Typo="Typo.subtitle2" Class="mb-2 font-weight-medium">URL de la imagen</MudText>
+                            <MudTextField T="string" 
+                                          @bind-Value="nuevoProducto.ImagenUrl"
+                                          Placeholder="https://ejemplo.com/imagen.jpg"
+                                          Variant="Variant.Outlined"
+                                          FullWidth="true" />
+                            
+                            @if (!string.IsNullOrEmpty(nuevoProducto.ImagenUrl))
+                            {
+                                <div class="mt-2">
+                                    <img src="@nuevoProducto.ImagenUrl" style="max-width: 100%; max-height: 100px; border-radius: 8px;" onerror="this.style.display='none'" />
+                                </div>
+                            }
+                        </MudItem>
 
-                    <!-- URL Imagen -->
-                    <MudItem xs="12">
-                        <MudText Typo="Typo.subtitle2" Class="mb-1">URL de la imagen</MudText>
-                        <input type="text" class="mud-input mud-input-outlined mud-input-root" style="width: 100%; padding: 12px; border-radius: 4px; border: 1px solid #d9d9d9;" @bind="nuevoProducto.ImagenUrl" placeholder="https://ejemplo.com/imagen.jpg" />
-                        @if (!string.IsNullOrEmpty(nuevoProducto.ImagenUrl))
-                        {
-                            <div class="mt-2">
-                                <img src="@nuevoProducto.ImagenUrl" style="max-width: 100%; max-height: 100px; border-radius: 8px;" onerror="this.style.display='none'" />
-                            </div>
-                        }
-                    </MudItem>
+                        <!-- Disponible -->
+                        <MudItem xs="12">
+                            <label>
+                                <input type="checkbox" @bind="nuevoProducto.Disponible" />
+                                Disponible para la venta
+                            </label>
+                        </MudItem>
 
-                    <!-- Disponible -->
-                    <MudItem xs="12">
-                        <label>
-                            <input type="checkbox" @bind="nuevoProducto.Disponible" />
-                            Disponible para la venta
-                        </label>
-                    </MudItem>
+                        <!-- Personalizaciones -->
+                        <MudItem xs="12">
+                            <MudDivider Class="my-3" />
+                            <MudText Typo="Typo.subtitle2" Class="mb-2 font-weight-medium">Personalizaciones</MudText>
+                            <MudText Typo="Typo.caption" Color="Color.Default" Class="mb-3">
+                                Opciones que el cliente puede seleccionar (ej: sin cebolla, sin azúcar)
+                            </MudText>
 
-                    <!-- Personalizaciones -->
-                    <MudItem xs="12">
-                        <MudDivider Class="my-2" />
-                        <MudText Typo="Typo.subtitle2" Class="mb-2">Personalizaciones</MudText>
-                        <MudText Typo="Typo.caption" Class="mb-3 text-muted">
-                            Opciones que el cliente puede seleccionar (ej: sin cebolla, sin azúcar)
-                        </MudText>
+                            @for (int i = 0; i < listaPersonalizaciones.Count; i++)
+                            {
+                                var index = i;
+                                <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center" Class="mb-2">
+                                    <MudTextField T="string" 
+                                                  @bind-Value="listaPersonalizaciones[index]"
+                                                  Placeholder="Ej: sin cebolla"
+                                                  Variant="Variant.Outlined"
+                                                  FullWidth="true" />
+                                    <MudIconButton Icon="@Icons.Material.Filled.Delete" 
+                                                   Size="Size.Small" 
+                                                   Color="Color.Error"
+                                                   OnClick="@(() => EliminarPersonalizacion(index))" />
+                                </MudStack>
+                            }
 
-                        @for (int i = 0; i < listaPersonalizaciones.Count; i++)
-                        {
-                            var index = i;
-                            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
-                                <input type="text" class="mud-input mud-input-outlined mud-input-root" style="flex: 1; padding: 10px; border-radius: 4px; border: 1px solid #d9d9d9;" @bind="listaPersonalizaciones[index]" placeholder="Ej: sin cebolla" />
-                                <button type="button" style="background: none; border: none; color: #f44336; cursor: pointer; font-size: 24px;" @onclick="@(() => EliminarPersonalizacion(index))">×</button>
-                            </div>
-                        }
+                            <MudButton Variant="Variant.Outlined" 
+                                       Color="Color.Primary" 
+                                       OnClick="AgregarPersonalizacion"
+                                       StartIcon="@Icons.Material.Filled.Add"
+                                       FullWidth="true"
+                                       Class="mt-2">
+                                Agregar personalización
+                            </MudButton>
+                        </MudItem>
 
-                        <button type="button" class="mud-button mud-button-outlined mud-button-outlined-primary mud-button-root" style="width: 100%; padding: 10px; margin-top: 8px;" @onclick="AgregarPersonalizacion">
-                            + Agregar personalización
-                        </button>
-                    </MudItem>
+                        <MudItem xs="12">
+                            <MudDivider Class="my-3" />
+                        </MudItem>
 
-                    <MudItem xs="12">
-                        <MudDivider Class="my-3" />
-                    </MudItem>
-
-                    <!-- Botones -->
-                    <MudItem xs="6">
-                        <MudButton Variant="Variant.Outlined" Color="Color.Default" OnClick="@Cancelar" FullWidth="true">
-                            Cancelar
-                        </MudButton>
-                    </MudItem>
-                    <MudItem xs="6">
-                        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@GuardarProducto" FullWidth="true" Disabled="@cargando">
-                            @(cargando ? "Guardando..." : "Guardar producto")
-                        </MudButton>
-                    </MudItem>
-                </MudGrid>
-            </MudCardContent>
-        </MudCard>
-
-        <MudSnackbarProvider />
+                        <!-- Botones -->
+                        <MudItem xs="6">
+                            <MudButton Variant="Variant.Outlined" 
+                                       Color="Color.Default" 
+                                       OnClick="Cancelar" 
+                                       FullWidth="true"
+                                       Size="Size.Large">
+                                Cancelar
+                            </MudButton>
+                        </MudItem>
+                        <MudItem xs="6">
+                            <MudButton Variant="Variant.Filled" 
+                                       Color="Color.Primary" 
+                                       OnClick="GuardarProducto" 
+                                       FullWidth="true" 
+                                       Disabled="@cargando"
+                                       Size="Size.Large">
+                                @(cargando ? "Guardando..." : "Guardar producto")
+                            </MudButton>
+                        </MudItem>
+                    </MudGrid>
+                </MudCardContent>
+            </MudCard>
+        }
     </MudContainer>
-}
+</MudLayout>
+
+<MudSnackbarProvider />
+
+<style>
+    /* Focus visible para accesibilidad */
+    .mud-button-root:focus-visible,
+    .mud-input-root:focus-visible {
+        outline: 2px solid var(--mud-palette-primary);
+        outline-offset: 2px;
+    }
+</style>
 
 @code {
     private Producto nuevoProducto = new Producto();

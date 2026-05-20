@@ -6,136 +6,219 @@
 @inject Cafeteria.Services.AuthStateService AuthState
 @inject IJSRuntime JS
 
-<MudContainer MaxWidth="MaxWidth.Small" Class="mt-4">
-    @if (!string.IsNullOrEmpty(producto?.Categoria))
-    {
-        <div class="d-flex align-items-center mb-4">
-            <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" Size="Size.Medium" OnClick='() => VolverAlMenu()' />
-            <MudText Typo="Typo.h5" Class="mb-0">@producto.Categoria</MudText>
-        </div>
-    }
-    else
-    {
-        <div class="d-flex align-items-center mb-4">
-            <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" Size="Size.Medium" OnClick='() => Navigation.NavigateTo("/")' />
-            <MudText Typo="Typo.h5" Class="mb-0">Volver al menú principal</MudText>
-        </div>
-    }
-    @if (cargando)
-    {
-        <div class="d-flex justify-content-center">
-            <MudProgressCircular Indeterminate Color="Color.Primary" />
-        </div>
-    }
-    else if (producto == null)
-    {
-        <MudAlert Severity="Severity.Error">Producto no encontrado.</MudAlert>
-        <MudButton Variant="Variant.Text" Color="Color.Primary" OnClick='() => Navigation.NavigateTo("/")' Class="mt-3">
-            Volver al menú
-        </MudButton>
-    }
-    else
-    {
-        <MudCard Elevation="3">
-            @if (!string.IsNullOrEmpty(producto.ImagenUrl))
-            {
-                <MudCardMedia Image="@producto.ImagenUrl" Height="250" />
-            }
-            else
-            {
-                <div class="pa-6 text-center text-muted">
-                    <MudIcon Icon="@Icons.Material.Filled.Fastfood" Size="Size.Large" Style="font-size: 64px;" />
-                </div>
-            }
+<MudThemeProvider />
+<MudLayout>
+    <MudContainer MaxWidth="MaxWidth.Small" Class="py-4">
+        
+        <!-- Header con navegación Material -->
+        <div class="mb-4">
+            <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" 
+                           Size="Size.Medium" 
+                           Color="Color.Default"
+                           OnClick="VolverAlMenu" />
             
-            <MudCardContent>
-                <MudText Typo="Typo.h4" Class="mb-2">@producto.Nombre</MudText>
-                
-                <div class="d-flex align-center gap-2 mb-3">
-                    <MudChip T="string" Size="Size.Small" Color="Color.Secondary">
-                        @producto.Categoria
-                    </MudChip>
-                    
-                    @if (!producto.Disponible)
-                    {
-                        <MudChip T="string" Size="Size.Small" Color="Color.Error">
-                            Agotado
-                        </MudChip>
-                    }
-                    else
-                    {
-                        <MudChip T="string" Size="Size.Small" Color="Color.Success">
-                            Disponible
-                        </MudChip>
-                    }
-                </div>
-                
-                <MudText Typo="Typo.h6" Color="Color.Primary" Class="mb-3">
-                    $@producto.Precio.ToString("0.00")
+            @if (producto != null && !string.IsNullOrEmpty(producto.Categoria))
+            {
+                <MudText Typo="Typo.subtitle2" Color="Color.Default" Class="mt-2">
+                    @producto.Categoria
                 </MudText>
+            }
+        </div>
+
+        @if (cargando)
+        {
+            <div class="d-flex justify-content-center mt-8">
+                <MudProgressCircular Indeterminate Color="Color.Primary" Size="Size.Large" />
+            </div>
+        }
+        else if (producto == null)
+        {
+            <MudPaper Class="pa-6 text-center">
+                <MudIcon Icon="@Icons.Material.Filled.ErrorOutline" Size="Size.Large" Color="Color.Error" Class="mb-3" />
+                <MudText Typo="Typo.h6" Color="Color.Error" Class="mb-3">
+                    Producto no encontrado
+                </MudText>
+                <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick='() => Navigation.NavigateTo("/")'>
+                    Volver al menú
+                </MudButton>
+            </MudPaper>
+        }
+        else
+        {
+            <!-- Card principal con elevación Material -->
+            <MudCard Elevation="3" Style="border-radius: 20px; overflow: hidden;">
                 
-                <MudDivider Class="my-3" />
-                
-                <MudText Typo="Typo.subtitle2" Class="mb-1">Descripción:</MudText>
-                <MudText Typo="Typo.body1" Class="mb-4">@producto.Descripcion</MudText>
-                
-                <!-- Personalizaciones -->
-                @if (producto.Personalizaciones.Any())
+                <!-- Imagen con ratio 16:9 -->
+                @if (!string.IsNullOrEmpty(producto.ImagenUrl))
                 {
-                    <MudDivider Class="my-3" />
-                    <MudText Typo="Typo.subtitle2" Class="mb-2">Personalizaciones:</MudText>
-                    <MudText Typo="Typo.body2" Class="mb-2 text-muted">Selecciona tus preferencias:</MudText>
-                    
-                    @foreach (var personalizacion in producto.Personalizaciones)
-                    {
-                        <div class="mb-2">
-                            <MudCheckBox T="bool" 
-                                         Label="@personalizacion" 
-                                         Color="Color.Primary"
-                                         @onclick="@(() => TogglePersonalizacion(personalizacion))"
-                                         Checked="@selectedPersonalizaciones.Contains(personalizacion)" />
-                        </div>
-                    }
-                }
-                
-                <!-- Resumen de selección -->
-                @if (selectedPersonalizaciones.Any())
-                {
-                    <MudDivider Class="my-3" />
-                    <MudText Typo="Typo.subtitle2" Class="mb-2">Tus preferencias:</MudText>
-                    <MudText Typo="Typo.body2" Class="text-muted">
-                        @string.Join(", ", selectedPersonalizaciones)
-                    </MudText>
-                }
-            </MudCardContent>
-            
-            <MudCardActions>
-                @if (esAdmin)
-                {
-                    <!-- Botones para admin -->
-                    <MudButton Variant="Variant.Text" Color="Color.Info" OnClick='() => EditarProducto()' StartIcon="@Icons.Material.Filled.Edit">
-                        Editar
-                    </MudButton>
-                    <MudButton Variant="Variant.Text" Color="Color.Error" OnClick='() => ConfirmarEliminar()' StartIcon="@Icons.Material.Filled.Delete">
-                        Eliminar
-                    </MudButton>
+                    <MudCardMedia Image="@producto.ImagenUrl" 
+                                  Height="280" 
+                                  Style="object-fit: cover;" />
                 }
                 else
                 {
-                    <!-- Botón para cliente normal -->
-                    <MudButton Variant="Variant.Filled" 
-                            Color="Color.Primary" 
-                            OnClick="AgregarAlCarrito"
-                            Disabled="!producto.Disponible">
-                        @(producto.Disponible ? "Agregar al carrito" : "No disponible")
-                    </MudButton>
+                    <div class="product-image-placeholder text-center">
+                        <MudIcon Icon="@Icons.Material.Filled.Fastfood" 
+                                 Size="Size.Large" 
+                                 Color="Color.Default"
+                                 Style="font-size: 80px;" />
+                    </div>
                 }
-            </MudCardActions>
-        </MudCard>
-    }
-</MudContainer>
+                
+                <MudCardContent Class="pa-6">
+                    
+                    <!-- Título y precio en una fila (Material Design) -->
+                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-3">
+                        <MudText Typo="Typo.h4" Class="font-weight-bold">
+                            @producto.Nombre
+                        </MudText>
+                        <MudText Typo="Typo.h5" Color="Color.Primary" Class="font-weight-bold">
+                            $@producto.Precio.ToString("0.00")
+                        </MudText>
+                    </MudStack>
+                    
+                    <!-- Chips de categoría y disponibilidad -->
+                    <MudStack Row="true" Spacing="2" Class="mb-4 flex-wrap">
+                        <MudChip T="string" Size="Size.Small" Color="Color.Secondary" Variant="Variant.Filled">
+                            <MudIcon Icon="@Icons.Material.Filled.Category" Size="Size.Small" /> @producto.Categoria
+                        </MudChip>
+                        
+                        @if (producto.Disponible)
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Outlined">
+                                <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Size="Size.Small" /> Disponible
+                            </MudChip>
+                        }
+                        else
+                        {
+                            <MudChip T="string" Size="Size.Small" Color="Color.Error" Variant="Variant.Outlined">
+                                <MudIcon Icon="@Icons.Material.Filled.Cancel" Size="Size.Small" /> Agotado
+                            </MudChip>
+                        }
+                    </MudStack>
+                    
+                    <MudDivider Class="my-4" />
+                    
+                    <!-- Descripción -->
+                    <MudText Typo="Typo.subtitle2" Color="Color.Default" Class="mb-2">
+                        Descripción
+                    </MudText>
+                    <MudText Typo="Typo.body1" Class="mb-4">
+                        @producto.Descripcion
+                    </MudText>
+                    
+                    <!-- Personalizaciones -->
+                    @if (producto.Personalizaciones.Any())
+                    {
+                        <MudDivider Class="my-4" />
+                        <MudText Typo="Typo.subtitle2" Color="Color.Default" Class="mb-2">
+                            Personalizaciones
+                        </MudText>
+                        <MudText Typo="Typo.body2" Color="Color.Default" Class="mb-3">
+                            Selecciona tus preferencias:
+                        </MudText>
+                        
+                        <MudStack Spacing="2">
+                            @foreach (var personalizacion in producto.Personalizaciones)
+                            {
+                                <MudCheckBox T="bool" 
+                                             Label="@personalizacion" 
+                                             Color="Color.Primary"
+                                             @onclick="@(() => TogglePersonalizacion(personalizacion))"
+                                             Checked="@selectedPersonalizaciones.Contains(personalizacion)" />
+                            }
+                        </MudStack>
+                        
+                        <!-- Resumen de selección -->
+                        @if (selectedPersonalizaciones.Any())
+                        {
+                            <MudPaper Class="mt-4 pa-3" Variant="Variant.Outlined" Style="border-radius: 12px;">
+                                <MudText Typo="Typo.body2" Color="Color.Primary" Class="font-weight-medium">
+                                    Tus preferencias:
+                                </MudText>
+                                <MudText Typo="Typo.body2" Color="Color.Default" Class="mt-1">
+                                    @string.Join(", ", selectedPersonalizaciones)
+                                </MudText>
+                            </MudPaper>
+                        }
+                    }
+                </MudCardContent>
+                
+                <!-- Actions footer con bordes redondeados -->
+                <MudCardActions Class="pa-4" Style="border-top: 1px solid var(--mud-palette-lines-default);">
+                    @if (esAdmin)
+                    {
+                        <MudStack Row="true" Spacing="2" Justify="Justify.SpaceBetween" Class="w-100">
+                            <MudButton Variant="Variant.Outlined" 
+                                       Color="Color.Info" 
+                                       OnClick="EditarProducto"
+                                       StartIcon="@Icons.Material.Filled.Edit">
+                                Editar
+                            </MudButton>
+                            <MudButton Variant="Variant.Outlined" 
+                                       Color="Color.Error" 
+                                       OnClick="ConfirmarEliminar"
+                                       StartIcon="@Icons.Material.Filled.Delete">
+                                Eliminar
+                            </MudButton>
+                        </MudStack>
+                    }
+                    else
+                    {
+                        <MudButton Variant="Variant.Filled" 
+                                   Color="Color.Primary" 
+                                   OnClick="AgregarAlCarrito"
+                                   Disabled="!producto.Disponible"
+                                   FullWidth="true"
+                                   Size="Size.Large"
+                                   Style="border-radius: 40px;">
+                            <MudIcon Icon="@Icons.Material.Filled.ShoppingCart" Class="mr-2" />
+                            @(producto.Disponible ? "Agregar al carrito" : "No disponible")
+                        </MudButton>
+                    }
+                </MudCardActions>
+            </MudCard>
+            
+            <div style="height: 20px;"></div>
+        }
+    </MudContainer>
+</MudLayout>
 
 <MudSnackbarProvider />
+
+<style>
+    /* Estilos Material Design complementarios */
+    .product-image-placeholder {
+        height: 280px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, var(--mud-palette-action-default-hover) 0%, var(--mud-palette-background-gray) 100%);
+    }
+    
+    /* Animación de entrada para la tarjeta */
+    .mud-card {
+        animation: fadeInUp 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    /* Focus visible para accesibilidad */
+    .mud-button-root:focus-visible,
+    .mud-icon-button:focus-visible {
+        outline: 2px solid var(--mud-palette-primary);
+        outline-offset: 2px;
+    }
+</style>
 
 @code {
     [Parameter] public string Id { get; set; } = "";
@@ -176,6 +259,7 @@
     private void AgregarAlCarrito()
     {
         Console.WriteLine($"\n=== AGREGANDO AL CARRITO ===");
+        Console.WriteLine($"ID: {producto?.Id}");
         Console.WriteLine($"Producto: {producto?.Nombre}");
         Console.WriteLine($"Precio: ${producto?.Precio}");
         Console.WriteLine($"Personalizaciones: {string.Join(", ", selectedPersonalizaciones)}");

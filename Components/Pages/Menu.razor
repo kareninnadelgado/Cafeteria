@@ -6,89 +6,178 @@
 @inject Cafeteria.Services.AuthStateService AuthState
 @inject IJSRuntime JS
 
-<MudContainer MaxWidth="MaxWidth.Medium" Class="mt-4">
-    @if (!string.IsNullOrEmpty(categoriaFiltro))
-    {
-        <div class="d-flex align-items-center mb-4">
-            <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" Size="Size.Medium" OnClick='() => Navigation.NavigateTo("/")' />
-            <MudText Typo="Typo.h4" Class="mb-0">@categoriaFiltro</MudText>
-        </div>
-    }
-    else
-    {
-        <MudText Typo="Typo.h4" Class="mb-4">Nuestro Menú</MudText>
-    }
-    
-    <!-- Mostrar productos -->
-    @if (cargando)
-    {
-        <div class="d-flex justify-content-center">
-            <MudProgressCircular Indeterminate Color="Color.Primary" />
-        </div>
-    }
-    else if (productos.Count == 0)
-    {
-        <MudAlert Severity="Severity.Info">No hay productos disponibles en esta categoría.</MudAlert>
-    }
-    else
-    {
-        <MudGrid>
-            @foreach (var producto in productos)
+<MudThemeProvider />
+<MudLayout>
+    <MudContainer MaxWidth="MaxWidth.Large" Class="py-4">
+        
+        <!-- Header con navegación Material -->
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-4">
+            <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" 
+                           Size="Size.Medium" 
+                           Color="Color.Default"
+                           OnClick='() => Navigation.NavigateTo("/")' />
+            
+            @if (!string.IsNullOrEmpty(categoriaFiltro))
             {
-                <MudItem xs="12" sm="6" md="4" lg="3">
-                    <MudCard Elevation="2" Class="h-100 d-flex flex-column" Style="cursor: pointer;" @onclick="() => VerDetalle(producto)">
-                        @if (!string.IsNullOrEmpty(producto.ImagenUrl))
-                        {
-                            <MudCardMedia Image="@producto.ImagenUrl" Height="150" />
-                        }
-                        else
-                        {
-                            <div class="pa-4 text-center text-muted">
-                                <MudIcon Icon="@Icons.Material.Filled.Fastfood" Size="Size.Large" />
-                            </div>
-                        }
-                        
-                        <MudCardContent Class="flex-grow-1">
-                            <MudText Typo="Typo.h6">@producto.Nombre</MudText>
-                            <MudText Typo="Typo.body2" Class="mt-1 text-muted">@TruncarDescripcion(producto.Descripcion)</MudText>
-                            <MudText Typo="Typo.h6" Color="Color.Primary" Class="mt-2">
-                                $@producto.Precio.ToString("0.00")
-                            </MudText>
-                            <MudChip T="string" Size="Size.Small" Color="Color.Secondary">
-                                @producto.Categoria
-                            </MudChip>
-                            <!-- Indicador de disponibilidad -->
-                            @if (producto.Disponible)
+                <MudText Typo="Typo.h4" Class="font-weight-medium">
+                    @categoriaFiltro
+                </MudText>
+                <MudChip T="string" Size="Size.Small" Color="Color.Primary" Variant="Variant.Outlined">
+                    @productos.Count productos
+                </MudChip>
+            }
+            else
+            {
+                <MudText Typo="Typo.h4" Class="font-weight-medium">
+                    Nuestro Menú
+                </MudText>
+            }
+        </MudStack>
+
+        <!-- Loading State -->
+        @if (cargando)
+        {
+            <div class="d-flex justify-content-center mt-8">
+                <MudProgressCircular Indeterminate Color="Color.Primary" Size="Size.Large" />
+            </div>
+        }
+        else if (productos.Count == 0)
+        {
+            <MudAlert Severity="Severity.Info" Class="mt-4">
+                <MudIcon Icon="@Icons.Material.Filled.Info" /> No hay productos disponibles en esta categoría.
+            </MudAlert>
+        }
+        else
+        {
+            <!-- Grid Material Design con espaciado de 8dp -->
+            <MudGrid Spacing="3" Justify="Justify.FlexStart">
+                @foreach (var producto in productos)
+                {
+                    <MudItem xs="12" sm="6" md="4" lg="3">
+                        <MudCard Elevation="2" 
+                                 ElevationHover="6"
+                                 Class="product-card h-100 d-flex flex-column"
+                                 Style="border-radius: 16px; cursor: pointer; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);"
+                                 @onclick="() => VerDetalle(producto)">
+                            
+                            <!-- Media con ratio Material (16:9) -->
+                            @if (!string.IsNullOrEmpty(producto.ImagenUrl))
                             {
-                                <MudChip T="string" Size="Size.Small" Color="Color.Success" Class="mt-2">
-                                    Disponible
-                                </MudChip>
+                                <MudCardMedia Image="@producto.ImagenUrl" 
+                                              Height="160" 
+                                              Style="object-fit: cover;" />
                             }
                             else
                             {
-                                <MudChip T="string" Size="Size.Small" Color="Color.Error" Class="mt-2">
-                                    No disponible
-                                </MudChip>
+                                <div class="product-placeholder text-center">
+                                    <MudIcon Icon="@Icons.Material.Filled.Fastfood" 
+                                             Size="Size.Large" 
+                                             Color="Color.Default" />
+                                </div>
                             }
-                            @if (esAdmin)
-                            {
-                                <MudButton Variant="Variant.Text" Color="Color.Info" Size="Size.Small" OnClick=@(() => EditarProducto(producto))" StartIcon="@Icons.Material.Filled.Edit">
-                                    Editar
-                                </MudButton>
+                            
+                            <MudCardContent Class="flex-grow-1">
+                                <!-- Título -->
+                                <MudText Typo="Typo.h6" Class="font-weight-medium line-clamp-1">
+                                    @producto.Nombre
+                                </MudText>
                                 
-                                <MudButton Variant="Variant.Text" Color="Color.Error" Size="Size.Small" OnClick="@(() => ConfirmarEliminar(producto))" StartIcon="@Icons.Material.Filled.Delete">
-                                    Eliminar
-                                </MudButton>
-                            }
-                        </MudCardContent>
-                    </MudCard>
-                </MudItem>
-            }
-        </MudGrid>
-    }
-</MudContainer>
+                                <!-- Descripción truncada -->
+                                <MudText Typo="Typo.body2" Color="Color.Default" Class="mt-1 line-clamp-2">
+                                    @TruncarDescripcion(producto.Descripcion)
+                                </MudText>
+                                
+                                <!-- Precio destacado -->
+                                <MudText Typo="Typo.h6" Color="Color.Primary" Class="mt-2 font-weight-bold">
+                                    $@producto.Precio.ToString("0.00")
+                                </MudText>
+                                
+                                <!-- Chips (categoría y disponibilidad) -->
+                                <MudStack Row="true" Spacing="1" Class="mt-2 flex-wrap">
+                                    <MudChip T="string" Size="Size.Small" Color="Color.Secondary" Variant="Variant.Filled">
+                                        @producto.Categoria
+                                    </MudChip>
+                                    
+                                    @if (producto.Disponible)
+                                    {
+                                        <MudChip T="string" Size="Size.Small" Color="Color.Success" Variant="Variant.Outlined">
+                                            <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Size="Size.Small" /> Disponible
+                                        </MudChip>
+                                    }
+                                    else
+                                    {
+                                        <MudChip T="string" Size="Size.Small" Color="Color.Error" Variant="Variant.Outlined">
+                                            <MudIcon Icon="@Icons.Material.Filled.Cancel" Size="Size.Small" /> No disponible
+                                        </MudChip>
+                                    }
+                                </MudStack>
+                                
+                                <!-- Botones de admin -->
+                                @if (esAdmin)
+                                {
+                                    <MudStack Row="true" Justify="Justify.FlexEnd" Spacing="1" Class="mt-3">
+                                        <MudIconButton Icon="@Icons.Material.Filled.Edit" 
+                                                       Size="Size.Small" 
+                                                       Color="Color.Info"
+                                                       OnClick="@(() => EditarProducto(producto))" />
+                                        <MudIconButton Icon="@Icons.Material.Filled.Delete" 
+                                                       Size="Size.Small" 
+                                                       Color="Color.Error"
+                                                       OnClick="@(() => ConfirmarEliminar(producto))" />
+                                    </MudStack>
+                                }
+                            </MudCardContent>
+                        </MudCard>
+                    </MudItem>
+                }
+            </MudGrid>
+        }
+    </MudContainer>
+</MudLayout>
 
 <MudSnackbarProvider />
+
+<style>
+    /* Estilos Material Design complementarios */
+    .product-card {
+        background: var(--mud-palette-surface);
+        border: 1px solid var(--mud-palette-lines-default);
+    }
+    
+    .product-card:active {
+        transform: scale(0.98);
+    }
+    
+    .product-placeholder {
+        height: 160px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--mud-palette-action-default-hover);
+    }
+    
+    /* Utilidades de truncado */
+    .line-clamp-1 {
+        display: -webkit-box;
+        -webkit-line-clamp: 1;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+    
+    .line-clamp-2 {
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+    
+    /* Focus visible para accesibilidad */
+    .product-card:focus-visible,
+    .mud-icon-button:focus-visible {
+        outline: 2px solid var(--mud-palette-primary);
+        outline-offset: 2px;
+    }
+</style>
 
 @code {
     [Parameter] public string? Categoria { get; set; }
@@ -100,7 +189,6 @@
 
     protected override async Task OnInitializedAsync()
     {
-        // Leer el parámetro de la query string
         var uri = Navigation.ToAbsoluteUri(Navigation.Uri);
         if (Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(uri.Query).TryGetValue("categoria", out var categoriaValue))
         {
@@ -115,7 +203,6 @@
         cargando = true;
         var todosLosProductos = await AuthService.ObtenerProductos();
         
-        // Filtrar por categoría si hay una seleccionada
         if (!string.IsNullOrEmpty(categoriaFiltro))
         {
             productos = todosLosProductos.Where(p => p.Categoria == categoriaFiltro).ToList();
@@ -138,8 +225,8 @@
     private string TruncarDescripcion(string descripcion)
     {
         if (string.IsNullOrEmpty(descripcion)) return "";
-        if (descripcion.Length <= 60) return descripcion;
-        return descripcion.Substring(0, 60) + "...";
+        if (descripcion.Length <= 80) return descripcion;
+        return descripcion.Substring(0, 80) + "...";
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
