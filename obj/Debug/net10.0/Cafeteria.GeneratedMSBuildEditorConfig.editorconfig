@@ -33,6 +33,14 @@ build_metadata.AdditionalFiles.CssScope =
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xBdXRoR3VhcmQucmF6b3I=
 build_metadata.AdditionalFiles.CssScope = 
 
+[C:/Users/dibuj/Documents/facu/HCI/6to/PROYECTO/Cafeteria/Components/NavBar.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xOYXZCYXIucmF6b3I=
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/dibuj/Documents/facu/HCI/6to/PROYECTO/Cafeteria/Components/Pages/AdminProductoEditar.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xBZG1pblByb2R1Y3RvRWRpdGFyLnJhem9y
+build_metadata.AdditionalFiles.CssScope = 
+
 [C:/Users/dibuj/Documents/facu/HCI/6to/PROYECTO/Cafeteria/Components/Pages/AdminProductoNuevo.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xBZG1pblByb2R1Y3RvTnVldm8ucmF6b3I=
 build_metadata.AdditionalFiles.CssScope = 

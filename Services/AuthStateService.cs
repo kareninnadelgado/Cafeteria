@@ -104,5 +104,9 @@ public class AuthStateService
         public string? Rol { get; set; }
     }
 
-    private void NotifyStateChanged() => OnChange?.Invoke();
+    public void NotifyStateChanged()
+    {
+        OnChange?.Invoke();
+    }
+
 }

@@ -1,40 +1,40 @@
-@page "/admin/producto/nuevo"
+@page "/admin/producto/editar/{Id}"
 @rendermode InteractiveServer
-@attribute [Microsoft.AspNetCore.Authorization.AllowAnonymous]
 @using Cafeteria.Models
 @inject Cafeteria.Services.FirebaseAuthService AuthService
-@inject NavigationManager Navigation
 @inject Cafeteria.Services.AuthStateService AuthState
+@inject NavigationManager Navigation
 
-@if (verificando)
-{
-    <div class="text-center py-5">
-        <div class="spinner-border text-primary" role="status"></div>
-        <p class="mt-2">Verificando acceso...</p>
-    </div>
-}
-else if (!esAdmin)
-{
-    <div class="alert alert-danger py-5 text-center">
-        <h3>Acceso Denegado</h3>
-        <p>No tienes permisos para acceder a esta página.</p>
-    </div>
-}
-else
-{
-    <MudContainer MaxWidth="MaxWidth.Small" Class="mt-4">
+<MudContainer MaxWidth="MaxWidth.Small" Class="mt-4">
+    @if (cargando)
+    {
+        <div class="d-flex justify-content-center">
+            <MudProgressCircular Indeterminate Color="Color.Primary" />
+        </div>
+    }
+    else if (producto == null)
+    {
+        <MudAlert Severity="Severity.Error">Producto no encontrado.</MudAlert>
+        <MudButton Variant="Variant.Text" Color="Color.Primary" OnClick='() => Navigation.NavigateTo("/admin-tools")' Class="mt-3">
+            Volver al panel
+        </MudButton>
+    }
+    else
+    {
         <MudCard Elevation="3">
             <MudCardContent>
-                <MudText Typo="Typo.h4" Class="mb-1">➕ Añadir Producto</MudText>
-                <MudText Typo="Typo.subtitle2" Class="mb-4 text-muted">Agrega un nuevo producto al menú</MudText>
-
+                <div class="d-flex align-items-center mb-4">
+                    <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" Size="Size.Medium" OnClick='() => Navigation.NavigateTo("/admin-tools")' />
+                    <MudText Typo="Typo.h4" Class="mb-0">✏️ Editar Producto</MudText>
+                </div>
+                
                 <MudDivider Class="mb-4" />
 
                 <MudGrid>
                     <!-- Nombre -->
                     <MudItem xs="12">
                         <MudText Typo="Typo.subtitle2" Class="mb-1">Nombre del producto *</MudText>
-                        <input type="text" class="mud-input mud-input-outlined mud-input-root" style="width: 100%; padding: 12px; border-radius: 4px; border: 1px solid #d9d9d9;" @bind="nuevoProducto.Nombre" placeholder="Ej: Café Americano" />
+                        <input type="text" class="mud-input mud-input-outlined mud-input-root" style="width: 100%; padding: 12px; border-radius: 4px; border: 1px solid #d9d9d9;" @bind="producto.Nombre" placeholder="Ej: Café Americano" />
                     </MudItem>
 
                     <!-- Categoría - Seleccionar existente o nueva -->
@@ -61,32 +61,33 @@ else
                     <!-- Precio -->
                     <MudItem xs="12">
                         <MudText Typo="Typo.subtitle2" Class="mb-1">Precio *</MudText>
-                        <input type="number" step="0.01" min="0" class="mud-input mud-input-outlined mud-input-root" style="width: 100%; padding: 12px; border-radius: 4px; border: 1px solid #d9d9d9;" @bind="nuevoProducto.Precio" placeholder="0.00" />
+                        <input type="number" step="0.01" min="0" class="mud-input mud-input-outlined mud-input-root" style="width: 100%; padding: 12px; border-radius: 4px; border: 1px solid #d9d9d9;" @bind="producto.Precio" placeholder="0.00" />
                     </MudItem>
 
                     <!-- Descripción -->
                     <MudItem xs="12">
                         <MudText Typo="Typo.subtitle2" Class="mb-1">Descripción</MudText>
-                        <textarea class="mud-input mud-input-outlined mud-input-root" rows="3" style="width: 100%; padding: 12px; border-radius: 4px; border: 1px solid #d9d9d9;" @bind="nuevoProducto.Descripcion" placeholder="Descripción breve del producto"></textarea>
+                        <textarea class="mud-input mud-input-outlined mud-input-root" rows="3" style="width: 100%; padding: 12px; border-radius: 4px; border: 1px solid #d9d9d9;" @bind="producto.Descripcion" placeholder="Descripción breve del producto"></textarea>
                     </MudItem>
 
                     <!-- URL Imagen -->
                     <MudItem xs="12">
                         <MudText Typo="Typo.subtitle2" Class="mb-1">URL de la imagen</MudText>
-                        <input type="text" class="mud-input mud-input-outlined mud-input-root" style="width: 100%; padding: 12px; border-radius: 4px; border: 1px solid #d9d9d9;" @bind="nuevoProducto.ImagenUrl" placeholder="https://ejemplo.com/imagen.jpg" />
-                        @if (!string.IsNullOrEmpty(nuevoProducto.ImagenUrl))
+                        <input type="text" class="mud-input mud-input-outlined mud-input-root" style="width: 100%; padding: 12px; border-radius: 4px; border: 1px solid #d9d9d9;" @bind="producto.ImagenUrl" placeholder="https://ejemplo.com/imagen.jpg" />
+                        @if (!string.IsNullOrEmpty(producto.ImagenUrl))
                         {
                             <div class="mt-2">
-                                <img src="@nuevoProducto.ImagenUrl" style="max-width: 100%; max-height: 100px; border-radius: 8px;" onerror="this.style.display='none'" />
+                                <img src="@producto.ImagenUrl" style="max-width: 100%; max-height: 100px; border-radius: 8px;" onerror="this.style.display='none'" />
                             </div>
                         }
                     </MudItem>
 
-                    <!-- Disponible -->
+                    <!-- Disponibilidad -->
                     <MudItem xs="12">
-                        <label>
-                            <input type="checkbox" @bind="nuevoProducto.Disponible" />
-                            Disponible para la venta
+                        <MudDivider Class="my-2" />
+                        <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                            <input type="checkbox" @bind="producto.Disponible" style="width: 18px; height: 18px; cursor: pointer;" />
+                            <MudText Typo="Typo.body1">Producto disponible para la venta</MudText>
                         </label>
                     </MudItem>
 
@@ -94,15 +95,12 @@ else
                     <MudItem xs="12">
                         <MudDivider Class="my-2" />
                         <MudText Typo="Typo.subtitle2" Class="mb-2">Personalizaciones</MudText>
-                        <MudText Typo="Typo.caption" Class="mb-3 text-muted">
-                            Opciones que el cliente puede seleccionar (ej: sin cebolla, sin azúcar)
-                        </MudText>
 
-                        @for (int i = 0; i < listaPersonalizaciones.Count; i++)
+                        @for (int i = 0; i < personalizacionesTemp.Count; i++)
                         {
                             var index = i;
                             <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 8px;">
-                                <input type="text" class="mud-input mud-input-outlined mud-input-root" style="flex: 1; padding: 10px; border-radius: 4px; border: 1px solid #d9d9d9;" @bind="listaPersonalizaciones[index]" placeholder="Ej: sin cebolla" />
+                                <input type="text" class="mud-input mud-input-outlined mud-input-root" style="flex: 1; padding: 10px; border-radius: 4px; border: 1px solid #d9d9d9;" @bind="personalizacionesTemp[index]" placeholder="Ej: sin cebolla" />
                                 <button type="button" style="background: none; border: none; color: #f44336; cursor: pointer; font-size: 24px;" @onclick="@(() => EliminarPersonalizacion(index))">×</button>
                             </div>
                         }
@@ -118,60 +116,60 @@ else
 
                     <!-- Botones -->
                     <MudItem xs="6">
-                        <MudButton Variant="Variant.Outlined" Color="Color.Default" OnClick="@Cancelar" FullWidth="true">
+                        <MudButton Variant="Variant.Outlined" Color="Color.Default" OnClick="Cancelar" FullWidth="true">
                             Cancelar
                         </MudButton>
                     </MudItem>
                     <MudItem xs="6">
-                        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="@GuardarProducto" FullWidth="true" Disabled="@cargando">
-                            @(cargando ? "Guardando..." : "Guardar producto")
+                        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="GuardarCambios" FullWidth="true" Disabled="@guardando">
+                            @(guardando ? "Guardando..." : "Guardar cambios")
                         </MudButton>
                     </MudItem>
                 </MudGrid>
             </MudCardContent>
         </MudCard>
-
-        <MudSnackbarProvider />
-    </MudContainer>
-}
+    }
+</MudContainer>
 
 @code {
-    private Producto nuevoProducto = new Producto();
-    private List<string> listaPersonalizaciones = new List<string>();
-    private List<string> categoriasExistentes = new List<string>();
+    [Parameter] public string Id { get; set; } = "";
+    
+    private Producto? producto = null;
+    private List<string> personalizacionesTemp = new();
+    private List<string> categoriasExistentes = new();
     private string categoriaSeleccionada = "";
     private string nuevaCategoria = "";
     private bool mostrarNuevaCategoria = false;
-    private bool cargando = false;
-    private bool esAdmin = false;
-    private bool verificando = true;
+    private bool cargando = true;
+    private bool guardando = false;
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
+    protected override async Task OnInitializedAsync()
     {
-        if (firstRender && verificando)
-        {
-            verificando = false;
-            
-            // Cargar sesión desde localStorage
-            await AuthState.CargarSesionDesdeLocalStorage();
-            
-            if (!AuthState.IsAdmin)
-            {
-                Console.WriteLine("❌ No es admin, redirigiendo a menu");
-                Navigation.NavigateTo("/", true);
-                return;
-            }
-            
-            esAdmin = true;
-            await CargarCategoriasExistentes();
-            StateHasChanged();
-        }
+        await CargarCategoriasExistentes();
+        await CargarProducto();
     }
 
     private async Task CargarCategoriasExistentes()
     {
         var productos = await AuthService.ObtenerProductos();
         categoriasExistentes = productos.Select(p => p.Categoria).Distinct().ToList();
+    }
+
+    private async Task CargarProducto()
+    {
+        cargando = true;
+        producto = await AuthService.ObtenerProductoPorId(Id);
+        
+        if (producto != null)
+        {
+            personalizacionesTemp = new List<string>(producto.Personalizaciones);
+            
+            // Inicializar selector con la categoría actual
+            categoriaSeleccionada = producto.Categoria;
+            mostrarNuevaCategoria = false;
+        }
+        
+        cargando = false;
         StateHasChanged();
     }
 
@@ -182,35 +180,37 @@ else
         if (categoriaSeleccionada == "__OTRA__")
         {
             mostrarNuevaCategoria = true;
-            nuevoProducto.Categoria = "";
+            if (producto != null) producto.Categoria = "";
         }
         else
         {
             mostrarNuevaCategoria = false;
-            nuevoProducto.Categoria = categoriaSeleccionada;
+            if (producto != null) producto.Categoria = categoriaSeleccionada;
             nuevaCategoria = "";
         }
     }
 
     private void AgregarPersonalizacion()
     {
-        listaPersonalizaciones.Add("");
+        personalizacionesTemp.Add("");
     }
 
     private void EliminarPersonalizacion(int index)
     {
-        listaPersonalizaciones.RemoveAt(index);
+        personalizacionesTemp.RemoveAt(index);
     }
 
-    private async Task GuardarProducto()
+    private async Task GuardarCambios()
     {
+        if (producto == null) return;
+        
         // Validar nombre
-        if (string.IsNullOrWhiteSpace(nuevoProducto.Nombre))
+        if (string.IsNullOrWhiteSpace(producto.Nombre))
         {
             Console.WriteLine("❌ Error: El nombre es obligatorio");
             return;
         }
-
+        
         // Validar categoría
         string categoriaFinal = "";
         if (mostrarNuevaCategoria && !string.IsNullOrWhiteSpace(nuevaCategoria))
@@ -221,60 +221,51 @@ else
         {
             categoriaFinal = categoriaSeleccionada;
         }
-
+        
         if (string.IsNullOrWhiteSpace(categoriaFinal))
         {
             Console.WriteLine("❌ Error: La categoría es obligatoria");
             return;
         }
-
-        nuevoProducto.Categoria = categoriaFinal;
-
+        
+        producto.Categoria = categoriaFinal;
+        
         // Validar precio
-        if (nuevoProducto.Precio <= 0)
+        if (producto.Precio <= 0)
         {
             Console.WriteLine("❌ Error: El precio debe ser mayor a 0");
             return;
         }
-
+        
         // Filtrar personalizaciones vacías
-        var personalizacionesFiltradas = listaPersonalizaciones
+        var personalizacionesFiltradas = personalizacionesTemp
             .Where(p => !string.IsNullOrWhiteSpace(p))
             .ToList();
-
-        cargando = true;
+        
+        guardando = true;
         StateHasChanged();
-
-        try
+        
+        var exito = await AuthService.ActualizarProducto(
+            id: producto.Id,
+            nombre: producto.Nombre,
+            descripcion: producto.Descripcion ?? "",
+            precio: producto.Precio,
+            categoria: producto.Categoria,
+            disponible: producto.Disponible,
+            imagenUrl: producto.ImagenUrl ?? "",
+            personalizaciones: personalizacionesFiltradas
+        );
+        
+        guardando = false;
+        
+        if (exito)
         {
-            var exito = await AuthService.CrearProducto(
-                nombre: nuevoProducto.Nombre,
-                descripcion: nuevoProducto.Descripcion ?? "",
-                precio: nuevoProducto.Precio,
-                categoria: nuevoProducto.Categoria,
-                disponible: nuevoProducto.Disponible,
-                imagenUrl: nuevoProducto.ImagenUrl ?? "",
-                personalizaciones: personalizacionesFiltradas
-            );
-
-            if (exito)
-            {
-                Console.WriteLine($"✅ Producto creado: {nuevoProducto.Nombre}");
-                Navigation.NavigateTo("/admin-tools");
-            }
-            else
-            {
-                Console.WriteLine("❌ Error al crear el producto");
-            }
+            Console.WriteLine($"✅ Producto actualizado: {producto.Nombre}");
+            Navigation.NavigateTo("/");
         }
-        catch (Exception ex)
+        else
         {
-            Console.WriteLine($"❌ Excepción: {ex.Message}");
-        }
-        finally
-        {
-            cargando = false;
-            StateHasChanged();
+            Console.WriteLine("❌ Error al actualizar el producto");
         }
     }
 

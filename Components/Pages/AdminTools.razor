@@ -19,7 +19,7 @@ else if (!esAdmin)
     <div class="alert alert-danger py-5 text-center">
         <h3>Acceso Denegado</h3>
         <p>No tienes permisos para acceder a esta página.</p>
-        <button class="btn btn-primary" @onclick='() => Navigation.NavigateTo("/menu")'>
+        <button class="btn btn-primary" @onclick='() => Navigation.NavigateTo("/")'>
             Volver al Menú
         </button>
     </div>
@@ -33,7 +33,7 @@ else
         <MudGrid>
             <!-- Menú - Gestión de productos -->
             <MudItem xs="12" sm="6" md="6">
-                <MudCard Elevation="3" Class="admin-card" Style="cursor: pointer; height: 100%;" @onclick='() => Navigation.NavigateTo("/admin/menu")'>
+                <MudCard Elevation="3" Class="admin-card" Style="cursor: pointer; height: 100%;" @onclick='() => Navigation.NavigateTo("/")'>
                     <MudCardContent Class="text-center pa-6">
                         <MudIcon Icon="@Icons.Material.Filled.RestaurantMenu" Size="Size.Large" Color="Color.Primary" Class="mb-3" />
                         <MudText Typo="Typo.h5" Class="mb-2">Menú</MudText>
@@ -143,7 +143,7 @@ else
             else
             {
                 Console.WriteLine("❌ NO ES ADMIN, redirigiendo");
-                Navigation.NavigateTo("/menu", true);
+                Navigation.NavigateTo("/", true);
                 return;
             }
             

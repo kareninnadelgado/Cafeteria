@@ -3,10 +3,23 @@
 @using Cafeteria.Models
 @inject Cafeteria.Services.FirebaseAuthService AuthService
 @inject NavigationManager Navigation
+@inject Cafeteria.Services.AuthStateService AuthState
+@inject IJSRuntime JS
 
 <MudContainer MaxWidth="MaxWidth.Medium" Class="mt-4">
-    <MudText Typo="Typo.h4" Class="mb-4">🍽️ Nuestro Menú</MudText>
+    @if (!string.IsNullOrEmpty(categoriaFiltro))
+    {
+        <div class="d-flex align-items-center mb-4">
+            <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" Size="Size.Medium" OnClick='() => Navigation.NavigateTo("/")' />
+            <MudText Typo="Typo.h4" Class="mb-0">@categoriaFiltro</MudText>
+        </div>
+    }
+    else
+    {
+        <MudText Typo="Typo.h4" Class="mb-4">Nuestro Menú</MudText>
+    }
     
+    <!-- Mostrar productos -->
     @if (cargando)
     {
         <div class="d-flex justify-content-center">
@@ -15,7 +28,7 @@
     }
     else if (productos.Count == 0)
     {
-        <MudAlert Severity="Severity.Info">No hay productos disponibles. Ve a /admin-tools y crea algunos.</MudAlert>
+        <MudAlert Severity="Severity.Info">No hay productos disponibles en esta categoría.</MudAlert>
     }
     else
     {
@@ -44,6 +57,29 @@
                             <MudChip T="string" Size="Size.Small" Color="Color.Secondary">
                                 @producto.Categoria
                             </MudChip>
+                            <!-- Indicador de disponibilidad -->
+                            @if (producto.Disponible)
+                            {
+                                <MudChip T="string" Size="Size.Small" Color="Color.Success" Class="mt-2">
+                                    Disponible
+                                </MudChip>
+                            }
+                            else
+                            {
+                                <MudChip T="string" Size="Size.Small" Color="Color.Error" Class="mt-2">
+                                    No disponible
+                                </MudChip>
+                            }
+                            @if (esAdmin)
+                            {
+                                <MudButton Variant="Variant.Text" Color="Color.Info" Size="Size.Small" OnClick=@(() => EditarProducto(producto))" StartIcon="@Icons.Material.Filled.Edit">
+                                    Editar
+                                </MudButton>
+                                
+                                <MudButton Variant="Variant.Text" Color="Color.Error" Size="Size.Small" OnClick="@(() => ConfirmarEliminar(producto))" StartIcon="@Icons.Material.Filled.Delete">
+                                    Eliminar
+                                </MudButton>
+                            }
                         </MudCardContent>
                     </MudCard>
                 </MudItem>
@@ -55,21 +91,43 @@
 <MudSnackbarProvider />
 
 @code {
+    [Parameter] public string? Categoria { get; set; }
+    private bool esAdmin = false;
+    private bool verificandoAdmin = true;
     private List<Producto> productos = new();
     private bool cargando = true;
+    private string categoriaFiltro = "";
 
     protected override async Task OnInitializedAsync()
     {
+        // Leer el parámetro de la query string
+        var uri = Navigation.ToAbsoluteUri(Navigation.Uri);
+        if (Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(uri.Query).TryGetValue("categoria", out var categoriaValue))
+        {
+            categoriaFiltro = categoriaValue.ToString();
+        }
+        
         await CargarProductos();
     }
 
     private async Task CargarProductos()
     {
         cargando = true;
-        productos = await AuthService.ObtenerProductos();
-        productos = productos.Where(p => p.Disponible).ToList();
+        var todosLosProductos = await AuthService.ObtenerProductos();
+        
+        // Filtrar por categoría si hay una seleccionada
+        if (!string.IsNullOrEmpty(categoriaFiltro))
+        {
+            productos = todosLosProductos.Where(p => p.Categoria == categoriaFiltro).ToList();
+            Console.WriteLine($"Filtrando por categoría: {categoriaFiltro}, encontrados: {productos.Count}");
+        }
+        else
+        {
+            productos = todosLosProductos;
+        }
         
         cargando = false;
+        StateHasChanged();
     }
 
     private void VerDetalle(Producto producto)
@@ -82,5 +140,37 @@
         if (string.IsNullOrEmpty(descripcion)) return "";
         if (descripcion.Length <= 60) return descripcion;
         return descripcion.Substring(0, 60) + "...";
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && verificandoAdmin)
+        {
+            verificandoAdmin = false;
+            await AuthState.CargarSesionDesdeLocalStorage();
+            esAdmin = AuthState.IsAdmin;
+            Console.WriteLine($"Admin en Menu.razor: {esAdmin}");
+            StateHasChanged();
+        }
+    }
+    
+    private void EditarProducto(Producto producto)
+    {
+        Navigation.NavigateTo($"/admin/producto/editar/{producto.Id}");
+    }
+
+    private async Task ConfirmarEliminar(Producto producto)
+    {
+        var confirm = await JS.InvokeAsync<bool>("confirm", $"¿Eliminar {producto.Nombre}? Esta acción no se puede deshacer.");
+        if (confirm)
+        {
+            var exito = await AuthService.EliminarProducto(producto.Id);
+            if (exito)
+            {
+                productos.Remove(producto);
+                StateHasChanged();
+                Console.WriteLine($"✅ Producto eliminado: {producto.Nombre}");
+            }
+        }
     }
 }

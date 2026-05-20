@@ -1,7 +1,107 @@
 ﻿@page "/"
+@rendermode InteractiveServer
+@using Cafeteria.Models
+@inject Cafeteria.Services.FirebaseAuthService AuthService
+@inject Cafeteria.Services.AuthStateService AuthState
+@inject NavigationManager Navigation
 
-<PageTitle>Home</PageTitle>
+<PageTitle>Cafetería Escolar</PageTitle>
 
-<h1>Hello, world!</h1>
+<MudContainer MaxWidth="MaxWidth.Medium" Class="mt-4">
+    <MudText Typo="Typo.h3" Class="mb-2 text-center">Bienvenido a la Cafetería</MudText>
+    <MudText Typo="Typo.subtitle2" Class="mb-4 text-center text-muted">Selecciona una categoría para ver los productos</MudText>
 
-Welcome to your new app.
+    @if (cargando)
+    {
+        <div class="d-flex justify-content-center">
+            <MudProgressCircular Indeterminate Color="Color.Primary" />
+        </div>
+    }
+    else if (categorias.Count == 0)
+    {
+        <MudAlert Severity="Severity.Info">No hay categorías disponibles.</MudAlert>
+    }
+    else
+    {
+        <MudGrid>
+            @foreach (var categoria in categorias)
+            {
+                <MudItem xs="12" sm="6" md="4">
+                    <MudCard Elevation="3" Class="category-card" Style="cursor: pointer; height: 100%;" @onclick="() => IrAMenu(categoria)">
+                        <MudCardContent Class="text-center pa-6">
+                            <MudIcon Icon="@ObtenerIconoCategoria(categoria)" Size="Size.Large" Color="Color.Primary" Class="mb-3" Style="font-size: 48px;" />
+                            <MudText Typo="Typo.h5" Class="mb-2">@categoria</MudText>
+                            <MudText Typo="Typo.body2" Class="text-muted">
+                                Ver todos los productos de esta categoría
+                            </MudText>
+                        </MudCardContent>
+                    </MudCard>
+                </MudItem>
+            }
+        </MudGrid>
+    }
+    
+    <!-- Botón de Admin Tools solo visible para admin -->
+    @if (esAdmin)
+    {
+        <div class="text-center mt-5">
+            <MudButton Variant="Variant.Filled" Color="Color.Secondary" Size="Size.Large" StartIcon="@Icons.Material.Filled.AdminPanelSettings" OnClick='() => Navigation.NavigateTo("/admin-tools")'>
+                Admin Tools
+            </MudButton>
+        </div>
+    }
+</MudContainer>
+
+<style>
+    .category-card {
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .category-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+    }
+</style>
+
+@code {
+    private List<string> categorias = new();
+    private bool cargando = true;
+    private bool esAdmin = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarCategorias();
+        await CargarEstadoAdmin();
+    }
+
+    private async Task CargarCategorias()
+    {
+        cargando = true;
+        categorias = await AuthService.ObtenerCategorias();
+        cargando = false;
+        StateHasChanged();
+    }
+    
+    private async Task CargarEstadoAdmin()
+    {
+        await AuthState.CargarSesionDesdeLocalStorage();
+        esAdmin = AuthState.IsAdmin;
+        StateHasChanged();
+    }
+
+    private void IrAMenu(string categoria)
+    {
+        Navigation.NavigateTo($"/menu?categoria={Uri.EscapeDataString(categoria)}");
+    }
+
+    private string ObtenerIconoCategoria(string categoria)
+    {
+        return categoria switch
+        {
+            "Bebidas Calientes" => Icons.Material.Filled.LocalCafe,
+            "Bebidas Frias" => Icons.Material.Filled.LocalDrink,
+            "Comida" => Icons.Material.Filled.LunchDining,
+            "Postres" => Icons.Material.Filled.Cake,
+            _ => Icons.Material.Filled.Category
+        };
+    }
+}

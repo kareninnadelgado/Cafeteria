@@ -55,27 +55,18 @@
             string rol = await AuthService.ObtenerRolUsuario(uid);
             
             await AuthState.SetUser(uid, email, rol);
-            Console.WriteLine($"Estado guardado - IsAdmin: {AuthState.IsAdmin}");
-            
-            Console.WriteLine($"✅ Sesión iniciada: {email} (UID: {uid}, Rol: {rol})");
-            
-            // Usar NavigationManager con replace
+
+            // Forzar recarga del NavBar
+            await AuthState.SetUser(uid, email, rol);
+            AuthState.NotifyStateChanged(); // Forzar notificación
+
             if (rol == "admin")
             {
-                Console.WriteLine("si llega aquí el pendejo");
-                await InvokeAsync(() =>
-                {
-                    Navigation.NavigateTo("/admin-tools", true);
-                    StateHasChanged();
-                });
+                Navigation.NavigateTo("/admin-tools");
             }
             else
             {
-                await InvokeAsync(() =>
-                {
-                    Navigation.NavigateTo("/menu", true);
-                    StateHasChanged();
-                });
+                Navigation.NavigateTo("/");
             }
         }
         else

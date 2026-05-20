@@ -3,8 +3,24 @@
 @using Cafeteria.Models
 @inject Cafeteria.Services.FirebaseAuthService AuthService
 @inject NavigationManager Navigation
+@inject Cafeteria.Services.AuthStateService AuthState
+@inject IJSRuntime JS
 
 <MudContainer MaxWidth="MaxWidth.Small" Class="mt-4">
+    @if (!string.IsNullOrEmpty(producto?.Categoria))
+    {
+        <div class="d-flex align-items-center mb-4">
+            <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" Size="Size.Medium" OnClick='() => VolverAlMenu()' />
+            <MudText Typo="Typo.h5" Class="mb-0">@producto.Categoria</MudText>
+        </div>
+    }
+    else
+    {
+        <div class="d-flex align-items-center mb-4">
+            <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" Size="Size.Medium" OnClick='() => Navigation.NavigateTo("/")' />
+            <MudText Typo="Typo.h5" Class="mb-0">Volver al menú principal</MudText>
+        </div>
+    }
     @if (cargando)
     {
         <div class="d-flex justify-content-center">
@@ -14,7 +30,7 @@
     else if (producto == null)
     {
         <MudAlert Severity="Severity.Error">Producto no encontrado.</MudAlert>
-        <MudButton Variant="Variant.Text" Color="Color.Primary" OnClick='() => Navigation.NavigateTo("/menu")' Class="mt-3">
+        <MudButton Variant="Variant.Text" Color="Color.Primary" OnClick='() => Navigation.NavigateTo("/")' Class="mt-3">
             Volver al menú
         </MudButton>
     }
@@ -94,16 +110,26 @@
             </MudCardContent>
             
             <MudCardActions>
-                <MudButton Variant="Variant.Text" Color="Color.Default" OnClick='() => Navigation.NavigateTo("/menu")'>
-                    Volver
-                </MudButton>
-                <MudSpacer />
-                <MudButton Variant="Variant.Filled" 
-                           Color="Color.Primary" 
-                           OnClick="AgregarAlCarrito"
-                           Disabled="!producto.Disponible">
-                    @(producto.Disponible ? "Agregar al carrito" : "No disponible")
-                </MudButton>
+                @if (esAdmin)
+                {
+                    <!-- Botones para admin -->
+                    <MudButton Variant="Variant.Text" Color="Color.Info" OnClick='() => EditarProducto()' StartIcon="@Icons.Material.Filled.Edit">
+                        Editar
+                    </MudButton>
+                    <MudButton Variant="Variant.Text" Color="Color.Error" OnClick='() => ConfirmarEliminar()' StartIcon="@Icons.Material.Filled.Delete">
+                        Eliminar
+                    </MudButton>
+                }
+                else
+                {
+                    <!-- Botón para cliente normal -->
+                    <MudButton Variant="Variant.Filled" 
+                            Color="Color.Primary" 
+                            OnClick="AgregarAlCarrito"
+                            Disabled="!producto.Disponible">
+                        @(producto.Disponible ? "Agregar al carrito" : "No disponible")
+                    </MudButton>
+                }
             </MudCardActions>
         </MudCard>
     }
@@ -113,11 +139,12 @@
 
 @code {
     [Parameter] public string Id { get; set; } = "";
-    
+    private bool esAdmin = false;
+    private bool verificandoAdmin = true;
     private Producto? producto = null;
     private bool cargando = true;
     private List<string> selectedPersonalizaciones = new();
-
+    
     protected override async Task OnInitializedAsync()
     {
         await CargarProducto();
@@ -153,5 +180,62 @@
         Console.WriteLine($"Precio: ${producto?.Precio}");
         Console.WriteLine($"Personalizaciones: {string.Join(", ", selectedPersonalizaciones)}");
         Console.WriteLine($"============================\n");
+    }
+
+    private void VolverAlMenu()
+    {
+        if (!string.IsNullOrEmpty(producto?.Categoria))
+        {
+            Navigation.NavigateTo($"/menu?categoria={Uri.EscapeDataString(producto.Categoria)}");
+        }
+        else
+        {
+            Navigation.NavigateTo("/menu");
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && verificandoAdmin)
+        {
+            verificandoAdmin = false;
+            await AuthState.CargarSesionDesdeLocalStorage();
+            esAdmin = AuthState.IsAdmin;
+            StateHasChanged();
+        }
+    }
+
+    private void EditarProducto()
+    {
+        Navigation.NavigateTo($"/admin/producto/editar/{producto?.Id}");
+    }
+
+    private async Task CambiarDisponibilidad()
+    {
+        if (producto == null) return;
+        
+        var exito = await AuthService.ToggleDisponibilidad(producto.Id, producto.Disponible);
+        if (exito)
+        {
+            producto.Disponible = !producto.Disponible;
+            StateHasChanged();
+            Console.WriteLine($"✅ Disponibilidad cambiada: {producto.Nombre} -> {(producto.Disponible ? "Disponible" : "No disponible")}");
+        }
+    }
+
+    private async Task ConfirmarEliminar()
+    {
+        if (producto == null) return;
+        
+        var confirm = await JS.InvokeAsync<bool>("confirm", $"¿Eliminar {producto.Nombre}? Esta acción no se puede deshacer.");
+        if (confirm)
+        {
+            var exito = await AuthService.EliminarProducto(producto.Id);
+            if (exito)
+            {
+                Console.WriteLine($"✅ Producto eliminado: {producto.Nombre}");
+                Navigation.NavigateTo("/menu");
+            }
+        }
     }
 }

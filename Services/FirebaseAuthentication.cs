@@ -213,4 +213,142 @@ public class FirebaseAuthService
         
         return productos;
     }
+
+    // MÉTODO PARA OBTENER LAS CATEGORÍAS
+    public async Task<List<string>> ObtenerCategorias()
+    {
+        var productos = await ObtenerProductos();
+        return productos.Select(p => p.Categoria).Distinct().ToList();
+    }
+
+    // ACTUALIZAR PRODUCTO
+    public async Task<bool> ActualizarProducto(string id, string nombre, string descripcion, double precio, string categoria, bool disponible, string imagenUrl, List<string> personalizaciones)
+    {
+        var url = $"https://firestore.googleapis.com/v1/projects/{projectId}/databases/(default)/documents/productos/{id}";
+        
+        var personalizacionesArray = new
+        {
+            arrayValue = new
+            {
+                values = personalizaciones?.Select(p => new { stringValue = p }).ToArray() ?? new object[] { }
+            }
+        };
+        
+        var datosProducto = new
+        {
+            fields = new
+            {
+                nombre = new { stringValue = nombre },
+                descripcion = new { stringValue = descripcion ?? "" },
+                precio = new { doubleValue = precio },
+                categoria = new { stringValue = categoria },
+                disponible = new { booleanValue = disponible },
+                imagen = new { stringValue = imagenUrl ?? "" },
+                personalizaciones = personalizacionesArray
+            }
+        };
+        
+        var json = JsonSerializer.Serialize(datosProducto);
+        var content = new StringContent(json, Encoding.UTF8, "application/json");
+        
+        var request = new HttpRequestMessage(new HttpMethod("PATCH"), url) { Content = content };
+        var response = await _http.SendAsync(request);
+        
+        if (!response.IsSuccessStatusCode)
+        {
+            var error = await response.Content.ReadAsStringAsync();
+            Console.WriteLine($"❌ Error actualizando: {error}");
+        }
+        
+        return response.IsSuccessStatusCode;
+    }
+
+    // ELIMINAR PRODUCTO
+    public async Task<bool> EliminarProducto(string id)
+    {
+        var url = $"https://firestore.googleapis.com/v1/projects/{projectId}/databases/(default)/documents/productos/{id}";
+        
+        var request = new HttpRequestMessage(HttpMethod.Delete, url);
+        var response = await _http.SendAsync(request);
+        
+        if (!response.IsSuccessStatusCode)
+        {
+            var error = await response.Content.ReadAsStringAsync();
+            Console.WriteLine($"❌ Error eliminando: {error}");
+        }
+        
+        return response.IsSuccessStatusCode;
+    }
+
+    // CAMBIAR DISPONIBILIDAD RÁPIDO
+    public async Task<bool> ToggleDisponibilidad(string id, bool disponibleActual)
+    {
+        var url = $"https://firestore.googleapis.com/v1/projects/{projectId}/databases/(default)/documents/productos/{id}";
+        
+        var datos = new
+        {
+            fields = new
+            {
+                disponible = new { booleanValue = !disponibleActual }
+            }
+        };
+        
+        var json = JsonSerializer.Serialize(datos);
+        var content = new StringContent(json, Encoding.UTF8, "application/json");
+        
+        var request = new HttpRequestMessage(new HttpMethod("PATCH"), url) { Content = content };
+        var response = await _http.SendAsync(request);
+        
+        return response.IsSuccessStatusCode;
+    }
+
+    public async Task<Producto?> ObtenerProductoPorId(string id)
+    {
+        var url = $"https://firestore.googleapis.com/v1/projects/{projectId}/databases/(default)/documents/productos/{id}";
+        
+        var response = await _http.GetAsync(url);
+        
+        if (!response.IsSuccessStatusCode) return null;
+        
+        var json = await response.Content.ReadAsStringAsync();
+        var root = JsonNode.Parse(json);
+        var fields = root?["fields"];
+        
+        if (fields == null) return null;
+        
+        var producto = new Producto
+        {
+            Id = id,
+            Nombre = fields["nombre"]?["stringValue"]?.GetValue<string>() ?? "",
+            Descripcion = fields["descripcion"]?["stringValue"]?.GetValue<string>() ?? "",
+            Precio = fields["precio"]?["doubleValue"]?.GetValue<double>() ?? 0,
+            Categoria = fields["categoria"]?["stringValue"]?.GetValue<string>() ?? "",
+            Disponible = fields["disponible"]?["booleanValue"]?.GetValue<bool>() ?? true,
+            ImagenUrl = fields["imagen"]?["stringValue"]?.GetValue<string>() ?? "",
+        };
+        
+        // Leer personalizaciones
+        var personalizacionesNode = fields["personalizaciones"];
+        if (personalizacionesNode != null)
+        {
+            var arrayValue = personalizacionesNode["arrayValue"];
+            if (arrayValue != null)
+            {
+                var values = arrayValue["values"]?.AsArray();
+                if (values != null)
+                {
+                    foreach (var item in values)
+                    {
+                        var stringValue = item?["stringValue"]?.GetValue<string>();
+                        if (!string.IsNullOrEmpty(stringValue))
+                        {
+                            producto.Personalizaciones.Add(stringValue);
+                        }
+                    }
+                }
+            }
+        }
+        
+        return producto;
+    }
 }
