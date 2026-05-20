@@ -1,10 +1,12 @@
 {
   "version": 2,
-  "dgSpecHash": "wl/Ew5DBbf8=",
+  "dgSpecHash": "4OmFrnverio=",
   "success": true,
-  "projectFilePath": "C:\\Users\\karen\\Cafeteria\\Cafeteria.csproj",
+  "projectFilePath": "C:\\Users\\dibuj\\Documents\\facu\\HCI\\6to\\PROYECTO\\Cafeteria\\Cafeteria.csproj",
   "expectedPackageFiles": [
-    "C:\\Users\\karen\\.nuget\\packages\\microsoft.aspnetcore.app.internal.assets\\10.0.7\\microsoft.aspnetcore.app.internal.assets.10.0.7.nupkg.sha512"
+    "C:\\Users\\dibuj\\.nuget\\packages\\microsoft.aspnetcore.app.internal.assets\\10.0.0\\microsoft.aspnetcore.app.internal.assets.10.0.0.nupkg.sha512",
+    "C:\\Users\\dibuj\\.nuget\\packages\\microsoft.aspnetcore.components.webassembly.authentication\\10.0.8\\microsoft.aspnetcore.components.webassembly.authentication.10.0.8.nupkg.sha512",
+    "C:\\Users\\dibuj\\.nuget\\packages\\mudblazor\\9.4.0\\mudblazor.9.4.0.nupkg.sha512"
   ],
   "logs": []
 }

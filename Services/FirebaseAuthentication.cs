@@ -4,6 +4,8 @@ using System.Net.Http;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
+using Cafeteria.Models;
+using System.Text.Json.Nodes;
 
 public class FirebaseAuthService
 {
@@ -46,7 +48,7 @@ public class FirebaseAuthService
         return await response.Content.ReadAsStringAsync();
     }
 
-    // 🔥 EL NUEVO MÉTODO PARA EL INSERT EN LA BASE DE DATOS
+    // EL NUEVO MÉTODO PARA EL INSERT EN LA BASE DE DATOS
     public async Task<bool> CrearPerfilUsuario(string uid, string nombre, string email)
     {
         // Endpoint oficial de la API REST de Firestore
@@ -71,12 +73,144 @@ public class FirebaseAuthService
         var request = new HttpRequestMessage(new HttpMethod("PATCH"), url) { Content = content };
         var response = await _http.SendAsync(request);
 
-// 🚨 Si sigue fallando, esto te dirá exactamente qué pasó en la terminal de VS Code:
-    if (!response.IsSuccessStatusCode)
-    {
-        var errorFirestore = await response.Content.ReadAsStringAsync();
-        Console.WriteLine($"🔥 ERROR REAL DE FIRESTORE: {errorFirestore}");
+        // 🚨 Si sigue fallando, esto te dirá exactamente qué pasó en la terminal de VS Code:
+        if (!response.IsSuccessStatusCode)
+        {
+            var errorFirestore = await response.Content.ReadAsStringAsync();
+            Console.WriteLine($"🔥 ERROR REAL DE FIRESTORE: {errorFirestore}");
+        }
+
+        return response.IsSuccessStatusCode;   
     }
 
-    return response.IsSuccessStatusCode;    }
+    // OBTENER EL ROL DE UN USUARIO POR SU UID
+    public async Task<string> ObtenerRolUsuario(string uid)
+    {
+        var url = $"https://firestore.googleapis.com/v1/projects/{projectId}/databases/(default)/documents/usuarios/{uid}";
+        
+        var response = await _http.GetAsync(url);
+        
+        if (!response.IsSuccessStatusCode)
+        {
+            Console.WriteLine($"❌ Error al obtener usuario: {response.StatusCode}");
+            return "alumno";
+        }
+        
+        var json = await response.Content.ReadAsStringAsync();
+        var root = JsonNode.Parse(json);
+        var rol = root?["fields"]?["rol"]?["stringValue"]?.GetValue<string>();
+        
+        return rol ?? "alumno";
+    }
+
+    // MÉTODO PARA CREAR UN PRODUCTO
+    public async Task<bool> CrearProducto(string nombre, string descripcion, double precio, string categoria, bool disponible, string imagenUrl = "", List<string> personalizaciones = null!)
+    {
+        var url = $"https://firestore.googleapis.com/v1/projects/{projectId}/databases/(default)/documents/productos/{Guid.NewGuid()}";
+        
+        // Construir el array de personalizaciones para Firestore
+        var personalizacionesArray = new
+        {
+            arrayValue = new
+            {
+                values = personalizaciones?.Select(p => new { stringValue = p }).ToArray() ?? new object[] { }
+            }
+        };
+        
+        var datosProducto = new
+        {
+            fields = new
+            {
+                nombre = new { stringValue = nombre },
+                descripcion = new { stringValue = descripcion },
+                precio = new { doubleValue = precio },
+                categoria = new { stringValue = categoria },
+                disponible = new { booleanValue = disponible },
+                imagen = new { stringValue = imagenUrl },
+                personalizaciones = personalizacionesArray
+            }
+        };
+        
+        var json = JsonSerializer.Serialize(datosProducto);
+        var content = new StringContent(json, Encoding.UTF8, "application/json");
+        
+        var request = new HttpRequestMessage(new HttpMethod("PATCH"), url) { Content = content };
+        var response = await _http.SendAsync(request);
+        
+        if (!response.IsSuccessStatusCode)
+        {
+            var errorFirestore = await response.Content.ReadAsStringAsync();
+            Console.WriteLine($"❌ ERROR: {errorFirestore}");
+        }
+        
+        return response.IsSuccessStatusCode;
+    }
+
+    // MÉTODO PARA OBTENER TODOS LOS PRODUCTOS
+    public async Task<List<Producto>> ObtenerProductos()
+    {
+        var url = $"https://firestore.googleapis.com/v1/projects/{projectId}/databases/(default)/documents/productos";
+        
+        var response = await _http.GetAsync(url);
+        var json = await response.Content.ReadAsStringAsync();
+        
+        var productos = new List<Producto>();
+        
+        var root = JsonNode.Parse(json);
+        var documents = root?["documents"]?.AsArray();
+        
+        if (documents != null)
+        {
+            foreach (var doc in documents)
+            {
+                var fields = doc?["fields"];
+                if (fields != null)
+                {
+                    var producto = new Producto();
+                    
+                    // Extraer ID
+                    var name = doc?["name"]?.GetValue<string>() ?? "";
+                    if (!string.IsNullOrEmpty(name))
+                    {
+                        var segments = name.Split('/');
+                        producto.Id = segments.Last();
+                    }
+                    
+                    // Campos básicos
+                    producto.Nombre = fields["nombre"]?["stringValue"]?.GetValue<string>() ?? "";
+                    producto.Descripcion = fields["descripcion"]?["stringValue"]?.GetValue<string>() ?? "";
+                    producto.Precio = fields["precio"]?["doubleValue"]?.GetValue<double>() ?? 0;
+                    producto.Categoria = fields["categoria"]?["stringValue"]?.GetValue<string>() ?? "";
+                    producto.Disponible = fields["disponible"]?["booleanValue"]?.GetValue<bool>() ?? true;
+                    producto.ImagenUrl = fields["imagen"]?["stringValue"]?.GetValue<string>() ?? "";
+                    
+                    // 🔥 LEER PERSONALIZACIONES (array)
+                    var personalizacionesNode = fields["personalizaciones"];
+                    if (personalizacionesNode != null)
+                    {
+                        var arrayValue = personalizacionesNode["arrayValue"];
+                        if (arrayValue != null)
+                        {
+                            var values = arrayValue["values"]?.AsArray();
+                            if (values != null)
+                            {
+                                foreach (var item in values)
+                                {
+                                    var stringValue = item?["stringValue"]?.GetValue<string>();
+                                    if (!string.IsNullOrEmpty(stringValue))
+                                    {
+                                        producto.Personalizaciones.Add(stringValue);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    
+                    productos.Add(producto);
+                }
+            }
+        }
+        
+        return productos;
+    }
 }

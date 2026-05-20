@@ -1,0 +1,160 @@
+@page "/admin-tools"
+@rendermode InteractiveServer
+@using Cafeteria.Models
+@inject Cafeteria.Services.FirebaseAuthService AuthService
+@inject Cafeteria.Services.AuthStateService AuthState
+@inject NavigationManager Navigation
+
+<PageTitle>Panel de Administración</PageTitle>
+
+@if (estaVerificando)
+{
+    <div class="text-center py-5">
+        <div class="spinner-border text-primary" role="status"></div>
+        <p class="mt-2">Verificando acceso...</p>
+    </div>
+}
+else if (!esAdmin)
+{
+    <div class="alert alert-danger py-5 text-center">
+        <h3>Acceso Denegado</h3>
+        <p>No tienes permisos para acceder a esta página.</p>
+        <button class="btn btn-primary" @onclick='() => Navigation.NavigateTo("/menu")'>
+            Volver al Menú
+        </button>
+    </div>
+}
+else
+{
+    <MudContainer MaxWidth="MaxWidth.Medium" Class="mt-4">
+        <MudText Typo="Typo.h3" Class="mb-1">Panel de Administración</MudText>
+        <MudText Typo="Typo.subtitle2" Class="mb-4 text-muted">Gestiona la cafetería escolar</MudText>
+        
+        <MudGrid>
+            <!-- Menú - Gestión de productos -->
+            <MudItem xs="12" sm="6" md="6">
+                <MudCard Elevation="3" Class="admin-card" Style="cursor: pointer; height: 100%;" @onclick='() => Navigation.NavigateTo("/admin/menu")'>
+                    <MudCardContent Class="text-center pa-6">
+                        <MudIcon Icon="@Icons.Material.Filled.RestaurantMenu" Size="Size.Large" Color="Color.Primary" Class="mb-3" />
+                        <MudText Typo="Typo.h5" Class="mb-2">Menú</MudText>
+                        <MudText Typo="Typo.body2" Class="text-muted">
+                            Ver, editar, eliminar y gestionar todos los productos del menú
+                        </MudText>
+                        <MudChip T="string" Size="Size.Small" Color="Color.Info" Class="mt-3">
+                            CRUD completo
+                        </MudChip>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+
+            <!-- Añadir nuevo producto -->
+            <MudItem xs="12" sm="6" md="6">
+                <MudCard Elevation="3" Class="admin-card" Style="cursor: pointer; height: 100%;" @onclick='() => Navigation.NavigateTo("/admin/producto/nuevo")'>
+                    <MudCardContent Class="text-center pa-6">
+                        <MudIcon Icon="@Icons.Material.Filled.Add" Size="Size.Large" Color="Color.Success" Class="mb-3" />
+                        <MudText Typo="Typo.h5" Class="mb-2">Añadir Producto</MudText>
+                        <MudText Typo="Typo.body2" Class="text-muted">
+                            Agregar un nuevo producto al menú con imagen, precio y personalizaciones
+                        </MudText>
+                        <MudChip T="string" Size="Size.Small" Color="Color.Success" Class="mt-3">
+                            Nuevo
+                        </MudChip>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+
+            <!-- Registro de usuarios -->
+            <MudItem xs="12" sm="6" md="6">
+                <MudCard Elevation="3" Class="admin-card" Style="cursor: pointer; height: 100%;" @onclick='() => Navigation.NavigateTo("/admin/registros")'>
+                    <MudCardContent Class="text-center pa-6">
+                        <MudIcon Icon="@Icons.Material.Filled.People" Size="Size.Large" Color="Color.Secondary" Class="mb-3" />
+                        <MudText Typo="Typo.h5" Class="mb-2">Registro de Usuarios</MudText>
+                        <MudText Typo="Typo.body2" Class="text-muted">
+                            Ver todos los usuarios registrados, sus pedidos y estadísticas
+                        </MudText>
+                        <MudChip T="string" Size="Size.Small" Color="Color.Secondary" Class="mt-3">
+                            Gestión de usuarios
+                        </MudChip>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+
+            <!-- Otros / Configuración -->
+            <MudItem xs="12" sm="6" md="6">
+                <MudCard Elevation="3" Class="admin-card" Style="cursor: pointer; height: 100%;" @onclick='() => Navigation.NavigateTo("/admin/otros")'>
+                    <MudCardContent Class="text-center pa-6">
+                        <MudIcon Icon="@Icons.Material.Filled.Settings" Size="Size.Large" Color="Color.Default" Class="mb-3" />
+                        <MudText Typo="Typo.h5" Class="mb-2">Otros</MudText>
+                        <MudText Typo="Typo.body2" Class="text-muted">
+                            Configuración, reportes, personalizaciones globales y más opciones
+                        </MudText>
+                        <MudChip T="string" Size="Size.Small" Color="Color.Default" Class="mt-3">
+                            Configuración
+                        </MudChip>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+        </MudGrid>
+
+        <div class="mt-4 text-center">
+            <button class="btn btn-outline-danger" @onclick="CerrarSesion">
+                Cerrar sesión
+            </button>
+        </div>
+    </MudContainer>
+}
+
+<style>
+    .admin-card {
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .admin-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+        cursor: pointer;
+    }
+</style>
+
+@code {
+    private bool esAdmin = false;
+    private bool estaVerificando = true;
+    private bool primeraVez = true;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && primeraVez)
+        {
+            primeraVez = false;
+            Console.WriteLine("=== AdminTools - Cargando sesión en OnAfterRender ===");
+            
+            // Cargar sesión desde localStorage (esto sí funciona aquí)
+            await AuthState.CargarSesionDesdeLocalStorage();
+            
+            Console.WriteLine($"CurrentUserId: {AuthState.CurrentUserId}");
+            Console.WriteLine($"CurrentUserRol: {AuthState.CurrentUserRol}");
+            
+            var usuario = AuthState.ObtenerUsuarioActual();
+            
+            if (usuario != null && string.Equals(usuario.Rol, "admin", StringComparison.OrdinalIgnoreCase))
+            {
+                esAdmin = true;
+                Console.WriteLine("✅ ES ADMIN, mostrando panel");
+            }
+            else
+            {
+                Console.WriteLine("❌ NO ES ADMIN, redirigiendo");
+                Navigation.NavigateTo("/menu", true);
+                return;
+            }
+            
+            estaVerificando = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task CerrarSesion()
+    {
+        await AuthState.ClearUser();
+        Navigation.NavigateTo("/login", true);
+    }
+}

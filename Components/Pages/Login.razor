@@ -1,6 +1,8 @@
 @page "/login"
 @rendermode InteractiveServer
+@using System.Text.Json
 @inject Cafeteria.Services.FirebaseAuthService AuthService
+@inject Cafeteria.Services.AuthStateService AuthState
 @inject NavigationManager Navigation
 
 <div class="container d-flex justify-content-center align-items-center" style="min-height: 80vh;">
@@ -42,13 +44,39 @@
     {
         errorMessage = string.Empty;
 
-        // LLAMAMOS A TU MÉTODO LOGIN
         var respuestaJson = await AuthService.Login(loginModel.Email, loginModel.Password);
 
         if (respuestaJson.Contains("idToken"))
         {
-            Console.WriteLine("¡Sesión iniciada con éxito!");
-            Navigation.NavigateTo("/"); // Te manda al index de la cafetería
+            using var doc = JsonDocument.Parse(respuestaJson);
+            string uid = doc.RootElement.GetProperty("localId").GetString() ?? "";
+            string email = doc.RootElement.GetProperty("email").GetString() ?? "";
+
+            string rol = await AuthService.ObtenerRolUsuario(uid);
+            
+            await AuthState.SetUser(uid, email, rol);
+            Console.WriteLine($"Estado guardado - IsAdmin: {AuthState.IsAdmin}");
+            
+            Console.WriteLine($"✅ Sesión iniciada: {email} (UID: {uid}, Rol: {rol})");
+            
+            // Usar NavigationManager con replace
+            if (rol == "admin")
+            {
+                Console.WriteLine("si llega aquí el pendejo");
+                await InvokeAsync(() =>
+                {
+                    Navigation.NavigateTo("/admin-tools", true);
+                    StateHasChanged();
+                });
+            }
+            else
+            {
+                await InvokeAsync(() =>
+                {
+                    Navigation.NavigateTo("/menu", true);
+                    StateHasChanged();
+                });
+            }
         }
         else
         {

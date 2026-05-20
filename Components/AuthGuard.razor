@@ -1,0 +1,27 @@
+@* Este componente protege las rutas que solo admin pueden ver *@
+@inject Cafeteria.Services.AuthStateService AuthState
+@inject NavigationManager Navigation
+
+@if (AuthState.IsLoading)
+{
+    <MudProgressCircular Indeterminate Color="Color.Primary" />
+}
+else if (!AuthState.IsAuthenticated)
+{
+    Navigation.NavigateTo("/login", true);
+    @* Redirigiendo... *@
+}
+else if (RequiereAdmin && !AuthState.IsAdmin)
+{
+    Navigation.NavigateTo("/menu", true);
+    @* No autorizado *@
+}
+else
+{
+    @ChildContent
+}
+
+@code {
+    [Parameter] public RenderFragment? ChildContent { get; set; }
+    [Parameter] public bool RequiereAdmin { get; set; } = true;
+}
