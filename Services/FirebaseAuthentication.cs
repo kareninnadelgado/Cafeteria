@@ -4,6 +4,7 @@ using System.Net.Http;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
+using System.Linq;
 using Cafeteria.Models;
 using System.Text.Json.Nodes;
 
@@ -11,9 +12,7 @@ public class FirebaseAuthService
 {
     private readonly HttpClient _http;
     private string apiKey = "AIzaSyAmJKvnkWt0lTKBiySguBhlOOitSBQD5aI";
-
-    // 🚨 REEMPLAZA ESTO CON EL ID REAL DE TU PROYECTO DE FIREBASE
-    private string projectId = "cafeteria-2e9db"; 
+    private string projectId = "cafeteria-2e9db";
 
     public FirebaseAuthService(HttpClient http)
     {
@@ -48,13 +47,10 @@ public class FirebaseAuthService
         return await response.Content.ReadAsStringAsync();
     }
 
-    // EL NUEVO MÉTODO PARA EL INSERT EN LA BASE DE DATOS
     public async Task<bool> CrearPerfilUsuario(string uid, string nombre, string email)
     {
-        // Endpoint oficial de la API REST de Firestore
         var url = $"https://firestore.googleapis.com/v1/projects/{projectId}/databases/(default)/documents/usuarios/{uid}";
 
-        // Firestore pide que le digamos explícitamente el tipo de dato ("stringValue")
         var datosUsuario = new
         {
             fields = new
@@ -69,286 +65,452 @@ public class FirebaseAuthService
         var json = JsonSerializer.Serialize(datosUsuario);
         var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-        // Usamos PATCH porque si el documento no existe lo crea, y si existe lo actualiza
         var request = new HttpRequestMessage(new HttpMethod("PATCH"), url) { Content = content };
         var response = await _http.SendAsync(request);
 
-        // 🚨 Si sigue fallando, esto te dirá exactamente qué pasó en la terminal de VS Code:
-        if (!response.IsSuccessStatusCode)
-        {
-            var errorFirestore = await response.Content.ReadAsStringAsync();
-            Console.WriteLine($"🔥 ERROR REAL DE FIRESTORE: {errorFirestore}");
-        }
-
-        return response.IsSuccessStatusCode;   
-    }
-
-    // OBTENER EL ROL DE UN USUARIO POR SU UID
-    public async Task<string> ObtenerRolUsuario(string uid)
-    {
-        var url = $"https://firestore.googleapis.com/v1/projects/{projectId}/databases/(default)/documents/usuarios/{uid}";
-        
-        var response = await _http.GetAsync(url);
-        
-        if (!response.IsSuccessStatusCode)
-        {
-            Console.WriteLine($"❌ Error al obtener usuario: {response.StatusCode}");
-            return "alumno";
-        }
-        
-        var json = await response.Content.ReadAsStringAsync();
-        var root = JsonNode.Parse(json);
-        var rol = root?["fields"]?["rol"]?["stringValue"]?.GetValue<string>();
-        
-        return rol ?? "alumno";
-    }
-
-    // MÉTODO PARA CREAR UN PRODUCTO
-    public async Task<bool> CrearProducto(string nombre, string descripcion, double precio, string categoria, bool disponible, string imagenUrl = "", List<string> personalizaciones = null!)
-    {
-        var url = $"https://firestore.googleapis.com/v1/projects/{projectId}/databases/(default)/documents/productos/{Guid.NewGuid()}";
-        
-        // Construir el array de personalizaciones para Firestore
-        var personalizacionesArray = new
-        {
-            arrayValue = new
-            {
-                values = personalizaciones?.Select(p => new { stringValue = p }).ToArray() ?? new object[] { }
-            }
-        };
-        
-        var datosProducto = new
-        {
-            fields = new
-            {
-                nombre = new { stringValue = nombre },
-                descripcion = new { stringValue = descripcion },
-                precio = new { doubleValue = precio },
-                categoria = new { stringValue = categoria },
-                disponible = new { booleanValue = disponible },
-                imagen = new { stringValue = imagenUrl },
-                personalizaciones = personalizacionesArray
-            }
-        };
-        
-        var json = JsonSerializer.Serialize(datosProducto);
-        var content = new StringContent(json, Encoding.UTF8, "application/json");
-        
-        var request = new HttpRequestMessage(new HttpMethod("PATCH"), url) { Content = content };
-        var response = await _http.SendAsync(request);
-        
-        if (!response.IsSuccessStatusCode)
-        {
-            var errorFirestore = await response.Content.ReadAsStringAsync();
-            Console.WriteLine($"❌ ERROR: {errorFirestore}");
-        }
-        
         return response.IsSuccessStatusCode;
     }
 
-    // MÉTODO PARA OBTENER TODOS LOS PRODUCTOS
-    public async Task<List<Producto>> ObtenerProductos()
+    public async Task<string> ObtenerRolUsuario(string uid)
     {
-        var url = $"https://firestore.googleapis.com/v1/projects/{projectId}/databases/(default)/documents/productos";
-        
+        var url = $"https://firestore.googleapis.com/v1/projects/{projectId}/databases/(default)/documents/usuarios/{uid}";
         var response = await _http.GetAsync(url);
+
+        if (!response.IsSuccessStatusCode) return "alumno";
+
         var json = await response.Content.ReadAsStringAsync();
-        
-        var productos = new List<Producto>();
-        
+        var root = JsonNode.Parse(json);
+        return root?["fields"]?["rol"]?["stringValue"]?.GetValue<string>() ?? "alumno";
+    }
+
+    // OBTENER CARRITO DESDE FIRESTORE
+    public async Task<List<CarritoItem>> ObtenerCarritoAsync(string uid)
+    {
+        var items = new List<CarritoItem>();
+        var url = $"https://firestore.googleapis.com/v1/projects/{projectId}/databases/(default)/documents/carritos/{uid}";
+        var response = await _http.GetAsync(url);
+
+        if (!response.IsSuccessStatusCode) return items;
+
+        var json = await response.Content.ReadAsStringAsync();
+        var root = JsonNode.Parse(json);
+        var arrayValues = root?["fields"]?["items"]?["arrayValue"]?["values"]?.AsArray();
+
+        if (arrayValues != null)
+        {
+            foreach (var itemNode in arrayValues)
+            {
+                var f = itemNode?["mapValue"]?["fields"];
+                if (f != null)
+                {
+                    items.Add(new CarritoItem
+                    {
+                        ProductoId = f["productoId"]?["stringValue"]?.GetValue<string>() ?? "",
+                        Nombre = f["nombre"]?["stringValue"]?.GetValue<string>() ?? "",
+                        Precio = f["precio"]?["doubleValue"]?.GetValue<double>() ?? 0,
+                        Cantidad = int.Parse(f["cantidad"]?["integerValue"]?.GetValue<string>() ?? "1"),
+                        ImagenUrl = f["imagenUrl"]?["stringValue"]?.GetValue<string>() ?? ""
+                    });
+                }
+            }
+        }
+        return items;
+    }
+
+    // PERSISTIR CARRITO EN FIRESTORE
+    public async Task<bool> GuardarCarritoAsync(string uid, List<CarritoItem> items)
+    {
+        var url = $"https://firestore.googleapis.com/v1/projects/{projectId}/databases/(default)/documents/carritos/{uid}";
+
+        var fieldsItems = items.Select(i => new
+        {
+            mapValue = new
+            {
+                fields = new
+                {
+                    productoId = new { stringValue = i.ProductoId },
+                    nombre = new { stringValue = i.Nombre },
+                    precio = new { doubleValue = i.Precio },
+                    cantidad = new { integerValue = i.Cantidad.ToString() },
+                    imagenUrl = new { stringValue = i.ImagenUrl }
+                }
+            }
+        }).ToArray();
+
+        var datosCarrito = new
+        {
+            fields = new
+            {
+                fechaActualizacion = new { stringValue = DateTime.UtcNow.ToString("o") },
+                items = new { arrayValue = new { values = fieldsItems } }
+            }
+        };
+
+        var json = JsonSerializer.Serialize(datosCarrito);
+        var content = new StringContent(json, Encoding.UTF8, "application/json");
+        var request = new HttpRequestMessage(new HttpMethod("PATCH"), url) { Content = content };
+        var response = await _http.SendAsync(request);
+        return response.IsSuccessStatusCode;
+    }
+
+    // CREAR TICKET DE PEDIDO FINALIZADO
+    public async Task<bool> CrearTicketPedidoAsync(string uid, string nombreAlumno, List<CarritoItem> items, double total)
+    {
+        var url = $"https://firestore.googleapis.com/v1/projects/{projectId}/databases/(default)/documents/tickets";
+
+        var fieldsProductos = items.Select(i => new
+        {
+            mapValue = new
+            {
+                fields = new
+                {
+                    nombre = new { stringValue = i.Nombre },
+                    cantidad = new { integerValue = i.Cantidad.ToString() },
+                    precio = new { doubleValue = i.Precio }
+                }
+            }
+        }).ToArray();
+
+        var datosTicket = new
+        {
+            fields = new
+            {
+                usuarioId = new { stringValue = uid },
+                nombreAlumno = new { stringValue = nombreAlumno },
+                fechaPedido = new { stringValue = DateTime.UtcNow.ToString("o") },
+                total = new { doubleValue = total },
+                estado = new { stringValue = "Pendiente" },
+                productos = new { arrayValue = new { values = fieldsProductos } }
+            }
+        };
+
+        var json = JsonSerializer.Serialize(datosTicket);
+        var content = new StringContent(json, Encoding.UTF8, "application/json");
+        var response = await _http.PostAsync(url, content);
+        return response.IsSuccessStatusCode;
+    }
+
+    // OBTENER PEDIDOS DE UN ALUMNO ESPECÍFICO
+    public async Task<List<TicketPedido>> ObtenerPedidosPorUsuarioAsync(string uid)
+    {
+        var todos = await ObtenerTodosLosPedidosAdminAsync();
+        return todos.Where(t => t.UsuarioId == uid).ToList();
+    }
+
+    // OBTENER TODOS LOS TICKETS (ADMIN / COCINA)
+    public async Task<List<TicketPedido>> ObtenerTodosLosPedidosAdminAsync()
+    {
+        var lista = new List<TicketPedido>();
+        var url = $"https://firestore.googleapis.com/v1/projects/{projectId}/databases/(default)/documents/tickets";
+        var response = await _http.GetAsync(url);
+
+        if (!response.IsSuccessStatusCode) return lista;
+
+        var json = await response.Content.ReadAsStringAsync();
         var root = JsonNode.Parse(json);
         var documents = root?["documents"]?.AsArray();
-        
+
         if (documents != null)
         {
             foreach (var doc in documents)
             {
                 var fields = doc?["fields"];
-                if (fields != null)
+                if (fields == null) continue;
+
+                var ticket = new TicketPedido();
+                var nameProperty = doc?["name"]?.GetValue<string>() ?? "";
+                ticket.Id = !string.IsNullOrEmpty(nameProperty) ? nameProperty.Split('/').Last() : Guid.NewGuid().ToString();
+
+                ticket.UsuarioId = fields["usuarioId"]?["stringValue"]?.GetValue<string>() ?? "";
+                ticket.NombreAlumno = fields["nombreAlumno"]?["stringValue"]?.GetValue<string>() ?? "";
+                ticket.Estado = fields["estado"]?["stringValue"]?.GetValue<string>() ?? "Pendiente";
+                ticket.Total = fields["total"]?["doubleValue"]?.GetValue<double>() ?? 0;
+
+                if (DateTime.TryParse(fields["fechaPedido"]?["stringValue"]?.GetValue<string>(), out var fecha))
                 {
-                    var producto = new Producto();
-                    
-                    // Extraer ID
-                    var name = doc?["name"]?.GetValue<string>() ?? "";
-                    if (!string.IsNullOrEmpty(name))
+                    ticket.FechaPedido = fecha;
+                }
+
+                var prodArray = fields["productos"]?["arrayValue"]?.AsObject()["values"]?.AsArray();
+                if (prodArray != null)
+                {
+                    foreach (var pNode in prodArray)
                     {
-                        var segments = name.Split('/');
-                        producto.Id = segments.Last();
-                    }
-                    
-                    // Campos básicos
-                    producto.Nombre = fields["nombre"]?["stringValue"]?.GetValue<string>() ?? "";
-                    producto.Descripcion = fields["descripcion"]?["stringValue"]?.GetValue<string>() ?? "";
-                    producto.Precio = fields["precio"]?["doubleValue"]?.GetValue<double>() ?? 0;
-                    producto.Categoria = fields["categoria"]?["stringValue"]?.GetValue<string>() ?? "";
-                    producto.Disponible = fields["disponible"]?["booleanValue"]?.GetValue<bool>() ?? true;
-                    producto.ImagenUrl = fields["imagen"]?["stringValue"]?.GetValue<string>() ?? "";
-                    
-                    // 🔥 LEER PERSONALIZACIONES (array)
-                    var personalizacionesNode = fields["personalizaciones"];
-                    if (personalizacionesNode != null)
-                    {
-                        var arrayValue = personalizacionesNode["arrayValue"];
-                        if (arrayValue != null)
+                        var pf = pNode?["mapValue"]?["fields"];
+                        if (pf != null)
                         {
-                            var values = arrayValue["values"]?.AsArray();
-                            if (values != null)
+                            ticket.Productos.Add(new CarritoItem
                             {
-                                foreach (var item in values)
-                                {
-                                    var stringValue = item?["stringValue"]?.GetValue<string>();
-                                    if (!string.IsNullOrEmpty(stringValue))
-                                    {
-                                        producto.Personalizaciones.Add(stringValue);
-                                    }
-                                }
-                            }
+                                Nombre = pf["nombre"]?["stringValue"]?.GetValue<string>() ?? "",
+                                Cantidad = int.Parse(pf["cantidad"]?["integerValue"]?.GetValue<string>() ?? "1"),
+                                Precio = pf["precio"]?["doubleValue"]?.GetValue<double>() ?? 0
+                            });
                         }
                     }
-                    
-                    productos.Add(producto);
                 }
+                lista.Add(ticket);
             }
         }
-        
-        return productos;
+        return lista;
     }
 
-    // MÉTODO PARA OBTENER LAS CATEGORÍAS
+    // ACTUALIZAR ESTADO DEL PEDIDO DESDE EL PANEL DE COCINA
+    public async Task<bool> ActualizarEstadoTicketAsync(string ticketId, string nuevoEstado)
+    {
+        var url = $"https://firestore.googleapis.com/v1/projects/{projectId}/databases/(default)/documents/tickets/{ticketId}?updateMask.fieldPaths=estado";
+
+        var datos = new { fields = new { estado = new { stringValue = nuevoEstado } } };
+        var json = JsonSerializer.Serialize(datos);
+        var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+        var request = new HttpRequestMessage(new HttpMethod("PATCH"), url) { Content = content };
+        var response = await _http.SendAsync(request);
+        return response.IsSuccessStatusCode;
+    }
+
+    // ----- PRODUCTOS CRUD PARA FIRESTORE -----
+    public async Task<List<Producto>> ObtenerProductos()
+    {
+        var lista = new List<Producto>();
+        var url = $"https://firestore.googleapis.com/v1/projects/{projectId}/databases/(default)/documents/productos";
+        var response = await _http.GetAsync(url);
+
+        if (!response.IsSuccessStatusCode) return lista;
+
+        var json = await response.Content.ReadAsStringAsync();
+
+        var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+        // Intentamos deserializar a la clase estructurada
+        FirestoreListaResponse? resp = null;
+        try { resp = JsonSerializer.Deserialize<FirestoreListaResponse>(json, options); } catch { resp = null; }
+
+        // También parseamos con JsonNode para campos complejos (arrays)
+        var root = JsonNode.Parse(json);
+        var documents = root?["documents"]?.AsArray();
+
+        // Preferir usar el JsonNode 'documents' (más robusto ante variaciones)
+        if (documents != null)
+        {
+            foreach (var docNode in documents)
+            {
+                var prod = new Producto();
+                var nameProp = docNode?["name"]?.GetValue<string>() ?? "";
+                prod.Id = !string.IsNullOrEmpty(nameProp) ? nameProp.Split('/').Last() : "";
+
+                var f = docNode?["fields"];
+                if (f != null)
+                {
+                    prod.Nombre = f?["nombre"]?["stringValue"]?.GetValue<string>() ?? "";
+                    prod.Descripcion = f?["descripcion"]?["stringValue"]?.GetValue<string>() ?? "";
+                    prod.Precio = f?["precio"]?["doubleValue"]?.GetValue<double?>() ?? 0;
+                    prod.Categoria = f?["categoria"]?["stringValue"]?.GetValue<string>() ?? "";
+                    prod.Disponible = f?["disponible"]?["booleanValue"]?.GetValue<bool?>() ?? false;
+                    prod.ImagenUrl = f?["imagen"]?["stringValue"]?.GetValue<string>() ?? "";
+
+                    prod.Personalizaciones = new List<string>();
+                    var pvals = f?["personalizaciones"]?["arrayValue"]?["values"]?.AsArray();
+                    if (pvals != null)
+                    {
+                        foreach (var v in pvals)
+                        {
+                            var s = v?["stringValue"]?.GetValue<string?>();
+                            if (!string.IsNullOrEmpty(s)) prod.Personalizaciones.Add(s);
+                        }
+                    }
+                }
+
+                lista.Add(prod);
+            }
+        }
+        else if (resp != null && resp.Documents != null)
+        {
+            for (int i = 0; i < resp.Documents.Count; i++)
+            {
+                var doc = resp.Documents[i];
+                var prod = new Producto();
+
+                // Id desde el nombre del documento
+                prod.Id = !string.IsNullOrEmpty(doc.Name) ? doc.Name.Split('/').Last() : "";
+                prod.Nombre = doc.Fields?.nombre?.stringValue ?? "";
+                prod.Descripcion = doc.Fields?.descripcion?.stringValue ?? "";
+                prod.Precio = doc.Fields?.precio?.doubleValue ?? 0;
+                prod.Categoria = doc.Fields?.categoria?.stringValue ?? "";
+                prod.Disponible = doc.Fields?.disponible?.booleanValue ?? false;
+                prod.ImagenUrl = doc.Fields?.imagen?.stringValue ?? "";
+
+                prod.Personalizaciones = new List<string>();
+                if (doc.Fields?.personalizaciones?.arrayValue?.values != null)
+                {
+                    foreach (var val in doc.Fields.personalizaciones.arrayValue.values)
+                    {
+                        if (val is JsonElement) continue;
+                        // intentar extraer como string si hay texto
+                        try
+                        {
+                            var s = val?.ToString();
+                            if (!string.IsNullOrEmpty(s)) prod.Personalizaciones.Add(s);
+                        }
+                        catch { }
+                    }
+                }
+
+                lista.Add(prod);
+            }
+        }
+
+        return lista;
+    }
+
     public async Task<List<string>> ObtenerCategorias()
     {
         var productos = await ObtenerProductos();
-        return productos.Select(p => p.Categoria).Distinct().ToList();
-    }
-
-    // ACTUALIZAR PRODUCTO
-    public async Task<bool> ActualizarProducto(string id, string nombre, string descripcion, double precio, string categoria, bool disponible, string imagenUrl, List<string> personalizaciones)
-    {
-        var url = $"https://firestore.googleapis.com/v1/projects/{projectId}/databases/(default)/documents/productos/{id}";
-        
-        var personalizacionesArray = new
-        {
-            arrayValue = new
-            {
-                values = personalizaciones?.Select(p => new { stringValue = p }).ToArray() ?? new object[] { }
-            }
-        };
-        
-        var datosProducto = new
-        {
-            fields = new
-            {
-                nombre = new { stringValue = nombre },
-                descripcion = new { stringValue = descripcion ?? "" },
-                precio = new { doubleValue = precio },
-                categoria = new { stringValue = categoria },
-                disponible = new { booleanValue = disponible },
-                imagen = new { stringValue = imagenUrl ?? "" },
-                personalizaciones = personalizacionesArray
-            }
-        };
-        
-        var json = JsonSerializer.Serialize(datosProducto);
-        var content = new StringContent(json, Encoding.UTF8, "application/json");
-        
-        var request = new HttpRequestMessage(new HttpMethod("PATCH"), url) { Content = content };
-        var response = await _http.SendAsync(request);
-        
-        if (!response.IsSuccessStatusCode)
-        {
-            var error = await response.Content.ReadAsStringAsync();
-            Console.WriteLine($"❌ Error actualizando: {error}");
-        }
-        
-        return response.IsSuccessStatusCode;
-    }
-
-    // ELIMINAR PRODUCTO
-    public async Task<bool> EliminarProducto(string id)
-    {
-        var url = $"https://firestore.googleapis.com/v1/projects/{projectId}/databases/(default)/documents/productos/{id}";
-        
-        var request = new HttpRequestMessage(HttpMethod.Delete, url);
-        var response = await _http.SendAsync(request);
-        
-        if (!response.IsSuccessStatusCode)
-        {
-            var error = await response.Content.ReadAsStringAsync();
-            Console.WriteLine($"❌ Error eliminando: {error}");
-        }
-        
-        return response.IsSuccessStatusCode;
-    }
-
-    // CAMBIAR DISPONIBILIDAD RÁPIDO
-    public async Task<bool> ToggleDisponibilidad(string id, bool disponibleActual)
-    {
-        var url = $"https://firestore.googleapis.com/v1/projects/{projectId}/databases/(default)/documents/productos/{id}";
-        
-        var datos = new
-        {
-            fields = new
-            {
-                disponible = new { booleanValue = !disponibleActual }
-            }
-        };
-        
-        var json = JsonSerializer.Serialize(datos);
-        var content = new StringContent(json, Encoding.UTF8, "application/json");
-        
-        var request = new HttpRequestMessage(new HttpMethod("PATCH"), url) { Content = content };
-        var response = await _http.SendAsync(request);
-        
-        return response.IsSuccessStatusCode;
+        return productos.Select(p => p.Categoria).Where(c => !string.IsNullOrEmpty(c)).Distinct().ToList();
     }
 
     public async Task<Producto?> ObtenerProductoPorId(string id)
     {
         var url = $"https://firestore.googleapis.com/v1/projects/{projectId}/databases/(default)/documents/productos/{id}";
-        
         var response = await _http.GetAsync(url);
-        
         if (!response.IsSuccessStatusCode) return null;
-        
+
         var json = await response.Content.ReadAsStringAsync();
         var root = JsonNode.Parse(json);
+
         var fields = root?["fields"];
-        
         if (fields == null) return null;
-        
+
         var producto = new Producto
         {
             Id = id,
-            Nombre = fields["nombre"]?["stringValue"]?.GetValue<string>() ?? "",
-            Descripcion = fields["descripcion"]?["stringValue"]?.GetValue<string>() ?? "",
-            Precio = fields["precio"]?["doubleValue"]?.GetValue<double>() ?? 0,
-            Categoria = fields["categoria"]?["stringValue"]?.GetValue<string>() ?? "",
-            Disponible = fields["disponible"]?["booleanValue"]?.GetValue<bool>() ?? true,
-            ImagenUrl = fields["imagen"]?["stringValue"]?.GetValue<string>() ?? "",
+            Nombre = fields?["nombre"]?["stringValue"]?.GetValue<string>() ?? "",
+            Descripcion = fields?["descripcion"]?["stringValue"]?.GetValue<string>() ?? "",
+            Precio = fields?["precio"]?["doubleValue"]?.GetValue<double?>() ?? 0,
+            Categoria = fields?["categoria"]?["stringValue"]?.GetValue<string>() ?? "",
+            Disponible = fields?["disponible"]?["booleanValue"]?.GetValue<bool?>() ?? false,
+            ImagenUrl = fields?["imagen"]?["stringValue"]?.GetValue<string>() ?? "",
+            Personalizaciones = new List<string>()
         };
-        
-        // Leer personalizaciones
-        var personalizacionesNode = fields["personalizaciones"];
-        if (personalizacionesNode != null)
+
+        var pnode = fields?["personalizaciones"]?["arrayValue"]?["values"]?.AsArray();
+        if (pnode != null)
         {
-            var arrayValue = personalizacionesNode["arrayValue"];
-            if (arrayValue != null)
+            foreach (var v in pnode)
             {
-                var values = arrayValue["values"]?.AsArray();
-                if (values != null)
-                {
-                    foreach (var item in values)
-                    {
-                        var stringValue = item?["stringValue"]?.GetValue<string>();
-                        if (!string.IsNullOrEmpty(stringValue))
-                        {
-                            producto.Personalizaciones.Add(stringValue);
-                        }
-                    }
-                }
+                var s = v?["stringValue"]?.GetValue<string?>();
+                if (!string.IsNullOrEmpty(s)) producto.Personalizaciones.Add(s);
             }
         }
-        
+
         return producto;
+    }
+
+    public async Task<bool> CrearProducto(Producto producto)
+    {
+        var url = $"https://firestore.googleapis.com/v1/projects/{projectId}/databases/(default)/documents/productos";
+
+        var personalizaciones = producto.Personalizaciones?.Select(p => new { stringValue = p }).ToArray() ?? Array.Empty<object>();
+
+        var datos = new
+        {
+            fields = new
+            {
+                nombre = new { stringValue = producto.Nombre },
+                descripcion = new { stringValue = producto.Descripcion },
+                precio = new { doubleValue = producto.Precio },
+                categoria = new { stringValue = producto.Categoria },
+                disponible = new { booleanValue = producto.Disponible },
+                imagen = new { stringValue = producto.ImagenUrl },
+                personalizaciones = new { arrayValue = new { values = personalizaciones } }
+            }
+        };
+
+        var json = JsonSerializer.Serialize(datos);
+        var content = new StringContent(json, Encoding.UTF8, "application/json");
+        var response = await _http.PostAsync(url, content);
+        return response.IsSuccessStatusCode;
+    }
+
+    // Sobrecarga para llamadas desde componentes (parámetros nombrados)
+    public async Task<bool> CrearProducto(string nombre, string descripcion, double precio, string categoria, bool disponible, string imagenUrl, List<string> personalizaciones)
+    {
+        var producto = new Producto
+        {
+            Nombre = nombre,
+            Descripcion = descripcion,
+            Precio = precio,
+            Categoria = categoria,
+            Disponible = disponible,
+            ImagenUrl = imagenUrl,
+            Personalizaciones = personalizaciones ?? new List<string>()
+        };
+
+        return await CrearProducto(producto);
+    }
+
+    public async Task<bool> ActualizarProducto(Producto producto)
+    {
+        if (string.IsNullOrEmpty(producto.Id)) return false;
+        var url = $"https://firestore.googleapis.com/v1/projects/{projectId}/databases/(default)/documents/productos/{producto.Id}";
+
+        var personalizaciones = producto.Personalizaciones?.Select(p => new { stringValue = p }).ToArray() ?? Array.Empty<object>();
+
+        var datos = new
+        {
+            fields = new
+            {
+                nombre = new { stringValue = producto.Nombre },
+                descripcion = new { stringValue = producto.Descripcion },
+                precio = new { doubleValue = producto.Precio },
+                categoria = new { stringValue = producto.Categoria },
+                disponible = new { booleanValue = producto.Disponible },
+                imagen = new { stringValue = producto.ImagenUrl },
+                personalizaciones = new { arrayValue = new { values = personalizaciones } }
+            }
+        };
+
+        var json = JsonSerializer.Serialize(datos);
+        var content = new StringContent(json, Encoding.UTF8, "application/json");
+        var request = new HttpRequestMessage(new HttpMethod("PATCH"), url) { Content = content };
+        var response = await _http.SendAsync(request);
+        return response.IsSuccessStatusCode;
+    }
+
+    // Sobrecarga para llamadas desde componentes (parámetros nombrados)
+    public async Task<bool> ActualizarProducto(string id, string nombre, string descripcion, double precio, string categoria, bool disponible, string imagenUrl, List<string> personalizaciones)
+    {
+        var producto = new Producto
+        {
+            Id = id,
+            Nombre = nombre,
+            Descripcion = descripcion,
+            Precio = precio,
+            Categoria = categoria,
+            Disponible = disponible,
+            ImagenUrl = imagenUrl,
+            Personalizaciones = personalizaciones ?? new List<string>()
+        };
+
+        return await ActualizarProducto(producto);
+    }
+
+    public async Task<bool> EliminarProducto(string id)
+    {
+        if (string.IsNullOrEmpty(id)) return false;
+        var url = $"https://firestore.googleapis.com/v1/projects/{projectId}/databases/(default)/documents/productos/{id}";
+        var response = await _http.DeleteAsync(url);
+        return response.IsSuccessStatusCode;
+    }
+
+    public async Task<bool> ToggleDisponibilidad(string id, bool actual)
+    {
+        if (string.IsNullOrEmpty(id)) return false;
+        var url = $"https://firestore.googleapis.com/v1/projects/{projectId}/databases/(default)/documents/productos/{id}?updateMask.fieldPaths=disponible";
+
+        var datos = new { fields = new { disponible = new { booleanValue = !actual } } };
+        var json = JsonSerializer.Serialize(datos);
+        var content = new StringContent(json, Encoding.UTF8, "application/json");
+        var request = new HttpRequestMessage(new HttpMethod("PATCH"), url) { Content = content };
+        var response = await _http.SendAsync(request);
+        return response.IsSuccessStatusCode;
     }
 }

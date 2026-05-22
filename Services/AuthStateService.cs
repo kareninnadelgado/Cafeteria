@@ -5,6 +5,7 @@ namespace Cafeteria.Services;
 public class AuthStateService
 {
     private readonly ProtectedLocalStorage _protectedLocalStorage;
+    private readonly Microsoft.JSInterop.IJSRuntime _js;
     
     public string? CurrentUserId { get; private set; }
     public string? CurrentUserEmail { get; private set; }
@@ -15,9 +16,10 @@ public class AuthStateService
 
     public event Action? OnChange;
 
-    public AuthStateService(ProtectedLocalStorage protectedLocalStorage)
+    public AuthStateService(ProtectedLocalStorage protectedLocalStorage, Microsoft.JSInterop.IJSRuntime js)
     {
         _protectedLocalStorage = protectedLocalStorage;
+        _js = js;
     }
 
     // Llamar este método después del renderizado (desde MainLayout o App)
@@ -42,7 +44,39 @@ public class AuthStateService
             }
             else
             {
-                Console.WriteLine("No se encontró sesión en localStorage");
+                // Fallback: intentar leer del localStorage del navegador (útil en desarrollo o cuando ProtectedLocalStorage no está disponible)
+                try
+                {
+                    // Intento inicial de leer desde window.localStorage
+                    var jsUserId = await _js.InvokeAsync<string>("localStorage.getItem", new object?[] { "userId" });
+                    var jsUserEmail = await _js.InvokeAsync<string>("localStorage.getItem", new object?[] { "userEmail" });
+                    var jsUserRol = await _js.InvokeAsync<string>("localStorage.getItem", new object?[] { "userRol" });
+
+                    // En entornos donde el JS interop se registra un poco más tarde, reintentamos una vez
+                    if (string.IsNullOrEmpty(jsUserId))
+                    {
+                        Console.WriteLine("Fallback: intento adicional para leer localStorage...");
+                        await Task.Delay(200);
+                        jsUserId = await _js.InvokeAsync<string>("localStorage.getItem", new object?[] { "userId" });
+                        jsUserEmail = await _js.InvokeAsync<string>("localStorage.getItem", new object?[] { "userEmail" });
+                        jsUserRol = await _js.InvokeAsync<string>("localStorage.getItem", new object?[] { "userRol" });
+                    }
+
+                    if (!string.IsNullOrEmpty(jsUserId))
+                    {
+                        // Persistir en ProtectedLocalStorage para futuras cargas
+                        await SetUser(jsUserId, jsUserEmail ?? "", jsUserRol ?? "alumno");
+                        Console.WriteLine($"Sesión (fallback) cargada desde window.localStorage: {jsUserId} - Rol: {jsUserRol}");
+                    }
+                    else
+                    {
+                        Console.WriteLine("No se encontró sesión en localStorage");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"No se encontró sesión en localStorage (error): {ex.Message}");
+                }
             }
         }
         catch (Exception ex)

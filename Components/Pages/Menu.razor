@@ -5,6 +5,7 @@
 @inject NavigationManager Navigation
 @inject Cafeteria.Services.AuthStateService AuthState
 @inject IJSRuntime JS
+@inject Cafeteria.Services.CarritoStateService CarritoService
 
 <MudThemeProvider />
 <MudLayout>
@@ -31,6 +32,15 @@
                 <MudText Typo="Typo.h4" Class="font-weight-medium">
                     Nuestro Menú
                 </MudText>
+            }
+            <MudSpacer />
+            @if (AuthState.IsAuthenticated && !esAdmin)
+            {
+                <MudIconButton Color="Color.Primary" OnClick='() => Navigation.NavigateTo("/carrito")' Title="Ver carrito">
+                    <MudBadge Content="@GetTotalProductos()" Color="Color.Error" Overlap="true" Visible="@(GetTotalProductos() > 0)">
+                        <MudIcon Icon="@Icons.Material.Filled.ShoppingCart" />
+                    </MudBadge>
+                </MudIconButton>
             }
         </MudStack>
 
@@ -186,6 +196,8 @@
     private List<Producto> productos = new();
     private bool cargando = true;
     private string categoriaFiltro = "";
+
+    private int GetTotalProductos() => CarritoService?.TotalProductos ?? 0;
 
     protected override async Task OnInitializedAsync()
     {

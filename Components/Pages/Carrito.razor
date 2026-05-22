@@ -1,0 +1,168 @@
+@page "/carrito"
+@using Cafeteria.Models
+@using MudBlazor
+@inject Cafeteria.Services.CarritoStateService CarritoService
+@inject Cafeteria.Services.AuthStateService AuthService
+@inject Cafeteria.Services.FirebaseAuthService FirestoreService
+@inject ISnackbar Snackbar
+@inject NavigationManager Navigation
+@inject IJSRuntime JS
+
+<MudContainer MaxWidth="MaxWidth.Medium" Class="mt-4">
+    <MudText Typo="Typo.h4" Class="mb-4">Tu Carrito de Compras</MudText>
+
+    @if (CarritoService.Items == null || CarritoService.Items.Count == 0)
+    {
+        <MudAlert Severity="Severity.Info">Tu carrito está vacío. ¡Ve al menú y ordena tu desayuno!</MudAlert>
+        <MudButton Variant="Variant.Outlined" Class="mt-3" OnClick='() => Navigation.NavigateTo("/menu")'>Ir al menú</MudButton>
+    }
+    else
+    {
+        <MudGrid>
+            <MudItem xs="12" md="8">
+                @foreach (var item in CarritoService.Items)
+                {
+                    <MudCard Class="mb-3 pa-3">
+                        <MudGrid AlignItems="AlignItems.Center">
+                            <MudItem xs="3">
+                                <MudImage Src="@item.ImagenUrl" Width="70" Height="70" Alt="@item.Nombre" ObjectFit="ObjectFit.Cover" Elevation="1" Class="rounded" />
+                            </MudItem>
+                            <MudItem xs="5">
+                                <MudText Typo="Typo.subtitle1" Style="font-weight: bold;">@item.Nombre</MudText>
+                                <MudText Typo="Typo.body2" Color="Color.Surface">@item.Precio.ToString("C") c/u</MudText>
+                            </MudItem>
+                            <MudItem xs="4" Class="d-flex align-center justify-end">
+                                <MudIconButton Icon="@Icons.Material.Filled.Remove" Size="Size.Small" OnClick="() => CambiarCantidad(item.ProductoId, item.Cantidad - 1)" />
+                                <MudText Class="mx-2" Style="font-weight: bold;">@item.Cantidad</MudText>
+                                <MudIconButton Icon="@Icons.Material.Filled.Add" Size="Size.Small" OnClick="() => CambiarCantidad(item.ProductoId, item.Cantidad + 1)" />
+                                <MudIconButton Icon="@Icons.Material.Filled.DeleteForever" Color="Color.Error" Size="Size.Medium" Class="ml-2" OnClick="() => RemoverProducto(item.ProductoId)" />
+                            </MudItem>
+                        </MudGrid>
+                    </MudCard>
+                }
+            </MudItem>
+
+            <MudItem xs="12" md="4">
+                <MudCard Elevation="4" Class="pa-4">
+                    <MudText Typo="Typo.h6" Class="mb-3">Resumen del Ticket</MudText>
+                    <div class="d-flex justify-space-between mb-2">
+                        <MudText>Productos totales:</MudText>
+                        <MudText Typo="Typo.body1" Style="font-weight: bold;">@CarritoService.TotalProductos</MudText>
+                    </div>
+                    <div class="d-flex justify-space-between mb-4">
+                        <MudText Typo="Typo.h6">Total:</MudText>
+                        <MudText Typo="Typo.h6" Color="Color.Primary" Style="font-weight: bold;">@CarritoService.TotalPagar.ToString("C")</MudText>
+                    </div>
+                    <MudButton Variant="Variant.Filled" Color="Color.Success" FullWidth="true" Size="Size.Large" OnClick="ProcesarPedidoAsync">
+                        Confirmar Orden
+                    </MudButton>
+                    <MudButton Variant="Variant.Outlined" Color="Color.Error" FullWidth="true" Class="mt-2" OnClick="VaciarCarrito">Vaciar carrito</MudButton>
+                </MudCard>
+            </MudItem>
+        </MudGrid>
+    }
+</MudContainer>
+
+@code {
+    private string uidUsuario = "";
+    private string nombreUsuario = "";
+
+    private bool inicializado = false;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender || inicializado) return;
+        inicializado = true;
+
+        var user = AuthService.ObtenerUsuarioActual();
+        if (user == null)
+        {
+            await AuthService.CargarSesionDesdeLocalStorage();
+            user = AuthService.ObtenerUsuarioActual();
+        }
+
+        if (user != null)
+        {
+            uidUsuario = user.Uid;
+            nombreUsuario = !string.IsNullOrEmpty(user.Email) ? user.Email.Split('@')[0] : "Alumno";
+            // Subscribe BEFORE inicializar para no perdernos la notificación inicial
+            CarritoService.OnCarritoCambiado += OnCarritoChanged;
+            await CarritoService.InicializarCarritoAsync(uidUsuario);
+            StateHasChanged();
+        }
+        else
+        {
+            Navigation.NavigateTo("/login");
+        }
+    }
+
+    private void OnCarritoChanged() => InvokeAsync(StateHasChanged);
+
+    private async Task CambiarCantidad(string productoId, int nuevaCantidad)
+    {
+        try
+        {
+            await CarritoService.ModificarCantidadAsync(uidUsuario, productoId, nuevaCantidad);
+        }
+        catch
+        {
+            Snackbar.Add("Error actualizando cantidad", Severity.Error);
+        }
+    }
+
+    private async Task VaciarCarrito()
+    {
+        try
+        {
+            await CarritoService.VaciarCarritoAsync(uidUsuario);
+            Snackbar.Add("Carrito vaciado", Severity.Info);
+        }
+        catch
+        {
+            Snackbar.Add("Error vaciando carrito", Severity.Error);
+        }
+    }
+
+    private async Task RemoverProducto(string productoId)
+    {
+        try
+        {
+            var confirm = await JS.InvokeAsync<bool>("confirm", "¿Eliminar este producto del carrito?");
+            if (!confirm) return;
+
+            await CarritoService.ModificarCantidadAsync(uidUsuario, productoId, 0);
+            Snackbar.Add("Producto eliminado", Severity.Normal);
+        }
+        catch
+        {
+            Snackbar.Add("Error eliminando producto", Severity.Error);
+        }
+    }
+
+    private async Task ProcesarPedidoAsync()
+    {
+        try
+        {
+            var exito = await FirestoreService.CrearTicketPedidoAsync(uidUsuario, nombreUsuario, CarritoService.Items, CarritoService.TotalPagar);
+            if (exito)
+            {
+                Snackbar.Add("¡Tu pedido fue enviado a la cafetería!", Severity.Success);
+                await CarritoService.VaciarCarritoAsync(uidUsuario);
+                Navigation.NavigateTo("/mis-pedidos");
+            }
+            else
+            {
+                Snackbar.Add("Error al procesar el ticket. Revisa tu conexión.", Severity.Error);
+            }
+        }
+        catch
+        {
+            Snackbar.Add("Error al procesar el ticket.", Severity.Error);
+        }
+    }
+
+    public void Dispose()
+    {
+        CarritoService.OnCarritoCambiado -= OnCarritoChanged;
+    }
+}

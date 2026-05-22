@@ -107,7 +107,6 @@
     protected override async Task OnInitializedAsync()
     {
         await CargarCategorias();
-        await CargarEstadoAdmin();
     }
 
     private async Task CargarCategorias()
@@ -118,8 +117,11 @@
         StateHasChanged();
     }
 
-    private async Task CargarEstadoAdmin()
+    private bool estadoInicializado = false;
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
+        if (!firstRender || estadoInicializado) return;
+        estadoInicializado = true;
         await AuthState.CargarSesionDesdeLocalStorage();
         esAdmin = AuthState.IsAdmin;
         StateHasChanged();

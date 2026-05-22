@@ -1,0 +1,79 @@
+@page "/mis-pedidos"
+@rendermode InteractiveServer
+@inject Cafeteria.Services.FirebaseAuthService FirestoreService
+@inject Cafeteria.Services.AuthStateService AuthService
+@using Cafeteria.Models
+
+<MudContainer MaxWidth="MaxWidth.Medium" Class="mt-4">
+    <MudText Typo="Typo.h4" Class="mb-4">Historial de Mis Pedidos</MudText>
+
+    @if (misTickets == null)
+    {
+        <div class="d-flex justify-center align-center pa-10">
+            <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+        </div>
+    }
+    else if (misTickets.Count == 0)
+    {
+        <MudAlert Severity="Severity.Normal">No has realizado ninguna orden todavía.</MudAlert>
+    }
+    else
+    {
+        @foreach (var ticket in misTickets.OrderByDescending(t => t.FechaPedido))
+        {
+            <MudExpansionPanel Class="mb-2 border rounded">
+                <TitleContent>
+                    <div class="d-flex justify-space-between align-center w-100 pr-4">
+                        <div>
+                            <MudText Typo="Typo.subtitle1" Style="font-weight: bold;">Pedido #@(ticket.Id.Length > 5 ? ticket.Id.Substring(0, 5) : ticket.Id)</MudText>
+                            <MudText Typo="Typo.caption" Color="Color.Surface">@ticket.FechaPedido.ToLocalTime().ToString("g")</MudText>
+                        </div>
+                        <MudChip T="string" Color="@ObtenerColorEstado(ticket.Estado)" Size="Size.Small">@ticket.Estado</MudChip>
+                    </div>
+                </TitleContent>
+                <ChildContent>
+                    <MudList T="string">
+                        @foreach (var prod in ticket.Productos)
+                        {
+                            <MudListItem Icon="@Icons.Material.Filled.Fastfood">
+                                <div class="d-flex justify-space-between">
+                                    <MudText>@prod.Nombre (x@prod.Cantidad)</MudText>
+                                    <MudText Style="font-weight: bold;">@((prod.Precio * prod.Cantidad).ToString("C"))</MudText>
+                                </div>
+                            </MudListItem>
+                        }
+                    </MudList>
+                    <MudDivider Class="my-2" />
+                    <div class="d-flex justify-end pr-4">
+                        <MudText Typo="Typo.h6">Total Pagado: <span class="text-success" Style="font-weight: bold;">@ticket.Total.ToString("C")</span></MudText>
+                    </div>
+                </ChildContent>
+            </MudExpansionPanel>
+        }
+    }
+</MudContainer>
+
+@code {
+    private List<TicketPedido>? misTickets;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            var user = AuthService.ObtenerUsuarioActual();
+            if (user != null)
+            {
+                misTickets = await FirestoreService.ObtenerPedidosPorUsuarioAsync(user.Uid);
+                StateHasChanged();
+            }
+        }
+    }
+
+    private Color ObtenerColorEstado(string estado) => estado switch
+    {
+        "Pendiente" => Color.Warning,
+        "En Preparación" => Color.Info,
+        "Listo para Recoger" => Color.Success,
+        _ => Color.Default
+    };
+}

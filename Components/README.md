@@ -60,4 +60,49 @@ En cumplimiento con los lineamientos de la materia, se declara el uso de herrami
 - La IA colaboró en la identificación y resolución de errores de compilación.
 - Se optimizaron los estilos.
 
-> *El código fue revisado, depurado y adaptado manualmente por el equipo para integrarse al ecosistema de .NET 10. Se realizaron esfuerzos por seguir los principios de Material Design en la medida de lo posible.*
+##  Cambios realizados (implementación)
+
+A continuación describo en primera persona y con detalle las modificaciones que realicé en este módulo para añadir soporte de carrito, autenticación mejorada, modelos y ajustes en la interfaz siguiendo Material Design 3:
+
+- **Servicios y estado del carrito:** Implementé `Services/CarritoStateService.cs`, un servicio responsable de mantener el estado del carrito en memoria (añadir, eliminar, limpiar, calcular totales) y de notificar a los componentes mediante un evento `OnChange`. Esto permite que `NavBar`, `Home`, `ProductoDetalle` y la página `Carrito` se sincronicen sin necesidad de pasar parámetros por la ruta.
+
+- **Registro en la aplicación:** Modifiqué `Program.cs` para registrar `CarritoStateService`, `Services/FirebaseAuthentication.cs` y `Services/AuthStateService.cs` en el contenedor de dependencias. De esta forma los componentes pueden resolverlos con `@inject` o `[Inject]` y consumir el estado y la autenticación fácilmente.
+
+- **Autenticación:** Actualicé `Services/FirebaseAuthentication.cs` para centralizar la comunicación con Firebase (login, logout, verificación y refresco de tokens) y `Services/AuthStateService.cs` para mantener el estado del usuario (perfil, roles, claims). Separé responsabilidades: la comunicación con Firebase queda en `FirebaseAuthentication` y la lógica de sesión/observabilidad en `AuthStateService`.
+
+- **Modelo del carrito:** Añadí `Models/Carritos.cs` que contiene la entidad `CarritoItem` (propiedades como `Id`, `ProductoId`, `Nombre`, `Cantidad`, `PrecioUnitario`, `ImagenUrl` y `Subtotal` calculado). Tipar el carrito facilita el enlazado en Razor y la futura persistencia.
+
+- **Componentes y páginas:** Realicé cambios en varios componentes para integrar la experiencia de carrito y autenticación:
+  - `Components/NavBar.razor`: añadí contador reactivo del carrito y controles de sesión (login/logout) basados en `AuthStateService`.
+  - `Components/Layout/MainLayout.razor`: ajusté la disposición para mostrar elementos globales (nav, badge del carrito) y asegurar consistencia visual.
+  - `Components/Pages/Home.razor`: añadí acciones rápidas para agregar productos al carrito desde la vista principal.
+  - `Components/Pages/Carrito.razor`: página nueva que lista items, permite editar cantidades, eliminar y ver totales; consume `CarritoStateService` para todas las operaciones.
+  - `Components/Pages/ProductoDetalle.razor`: añadí la opción de seleccionar cantidad y agregar al carrito desde la ficha del producto.
+  - `Components/Pages/PanelAdminPedidos.razor`: implementé un panel básico para ver pedidos y gestionar estados, accesible solo a roles `admin`.
+
+- **Interactividad y control de accesos:** Integré visibilidad condicional en los menús y accesos rápidos del `Menu` para respetar roles definidos por `AuthStateService`.
+
+### Uso de componentes y decisiones visuales (MudBlazor / Material Design)
+
+Durante la implementación procuré mantener una guía visual consistente basada en Material Design 3 usando MudBlazor. Un ejemplo recurrente fue el uso de tarjetas con elevación y bordes suaves:
+
+```html
+<MudCard Elevation="2" ElevationHover="6" Style="border-radius: 16px/20px">
+  <!-- Contenido de producto, formulario o tarjeta -->
+</MudCard>
+```
+
+- **Por qué esta elección:** La elevación (`Elevation="2"`) establece una jerarquía visual base; `ElevationHover="6"` aumenta la retroalimentación al interactuar (hover/tap). Los radios entre 12 y 20 dp (representados aquí con `16px/20px`) siguen las recomendaciones de M3 para ofrecer bordes suaves y modernos.
+- **Aplicación práctica:** Usé esta configuración en listados de productos, `ProductoDetalle`, las tarjetas de admin y en los ítems del carrito para mantener coherencia y mejor señalización de elementos interactivos.
+
+### Justificación de la guía de estilo: elección de Material Design
+
+Para la interfaz decidí seguir Material Design por las siguientes razones:
+- **Multiplataforma:** La PWA corre en cualquier navegador; Material Design es agnóstico a plataformas mientras que otras guías (ej. Apple HIG) se orientan a un ecosistema concreto.
+- **Optimización web:** Material Design ofrece patrones extensos para web responsiva, grids adaptativos y soporte para interacciones táctiles.
+- **Ecosistema:** MudBlazor provee componentes compatibles con Blazor que implementan Material Design, lo que acelera desarrollo y asegura coherencia visual.
+
+Estas razones guiaron las decisiones de componentes, elevaciones, radios, tipografías y comportamiento interactivo en todo el módulo.
+
+---
+

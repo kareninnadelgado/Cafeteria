@@ -1,5 +1,7 @@
 ﻿@inherits LayoutComponentBase
+@implements IDisposable
 @inject Cafeteria.Services.AuthStateService AuthState
+@inject Cafeteria.Services.CarritoStateService CarritoService
 @inject NavigationManager NavigationManager
 
 <MudThemeProvider />
@@ -16,22 +18,42 @@
             
             @if (esAdmin)
             {
-                <MudIconButton Icon="@Icons.Material.Filled.AdminPanelSettings" Color="Color.Inherit" OnClick='() => NavigationManager.NavigateTo("/admin-tools")' />
+                <MudIconButton Icon="@Icons.Material.Filled.AdminPanelSettings" Color="Color.Inherit" OnClick='() => NavigationManager.NavigateTo("/admin/pedidos")' />
             }
             
-            <MudIconButton Icon="@Icons.Material.Filled.ShoppingCart" Color="Color.Inherit" />
+            @* Carrito fijo para alumnos: se muestra fuera del AppBar (CSS position fixed) *@
+            @if (AuthState.IsAuthenticated)
+            {
+                <!-- de momento dejamos espacio en AppBar; el botón fijo se renderiza más abajo -->
+            }
         </MudAppBar>
         
+        @* Botón fijo de carrito (solo alumnos) *@
+        @if (AuthState.IsAuthenticated && !esAdmin)
+        {
+            <div class="fixed-cart">
+                <MudBadge Content="@CarritoService.TotalProductos" Color="Color.Error" Overlap="true" Visible="@(CarritoService.TotalProductos > 0)">
+                    <MudIconButton Icon="@Icons.Material.Filled.ShoppingCart" Color="Color.Primary" OnClick='() => NavigationManager.NavigateTo("/carrito")' />
+                </MudBadge>
+            </div>
+        }
         <MudDrawer @bind-Open="_drawerOpen" Elevation="2">
             <MudNavMenu>
                 <MudNavLink Href="/menu" Match="NavLinkMatch.Prefix">
                     <MudIcon Icon="@Icons.Material.Filled.RestaurantMenu" /> Menú
                 </MudNavLink>
                 
+                @if (AuthState.IsAuthenticated)
+                {
+                    <MudNavLink Href="/mis-pedidos">
+                        <MudIcon Icon="@Icons.Material.Filled.History" /> Mis Pedidos
+                    </MudNavLink>
+                }
+                
                 @if (esAdmin)
                 {
-                    <MudNavLink Href="/admin-tools">
-                        <MudIcon Icon="@Icons.Material.Filled.AdminPanelSettings" /> Admin
+                    <MudNavLink Href="/admin/pedidos">
+                        <MudIcon Icon="@Icons.Material.Filled.DeliveryDining" /> Cocina (Pedidos)
                     </MudNavLink>
                 }
                 
@@ -46,7 +68,7 @@
                 }
                 else
                 {
-                    <MudNavLink Href="#" @onclick="CerrarSesion">
+                    <MudNavLink OnClick="CerrarSesion" Style="cursor: pointer;">
                         <MudIcon Icon="@Icons.Material.Filled.Logout" /> Cerrar Sesión
                     </MudNavLink>
                 }
@@ -65,20 +87,42 @@
     private bool _drawerOpen = true;
     private bool esAdmin = false;
 
-    protected override async Task OnInitializedAsync()
+    protected override void OnInitialized()
     {
-        // Cargar sesión al inicio
-        await AuthState.CargarSesionDesdeLocalStorage();
-        esAdmin = AuthState.IsAdmin;
-        
-        // Suscribirse a cambios
-        AuthState.OnChange += () =>
+        AuthState.OnChange += OnAuthStateChanged;
+        CarritoService.OnCarritoCambiado += RederizarNavbar;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await AuthState.CargarSesionDesdeLocalStorage();
+            esAdmin = AuthState.IsAdmin;
+            
+            if (AuthState.IsAuthenticated)
+            {
+                // Sincroniza el gestor de estado con Firestore/Localstorage
+                await CarritoService.InicializarCarritoAsync(AuthState.CurrentUserId!);
+            }
+            StateHasChanged();
+        }
+    }
+
+    private void OnAuthStateChanged()
+    {
+        InvokeAsync(async () =>
         {
             esAdmin = AuthState.IsAdmin;
-            Console.WriteLine($"MainLayout - esAdmin actualizado a: {esAdmin}");
+            if (AuthState.IsAuthenticated)
+            {
+                await CarritoService.InicializarCarritoAsync(AuthState.CurrentUserId!);
+            }
             StateHasChanged();
-        };
+        });
     }
+
+    private void RederizarNavbar() => InvokeAsync(StateHasChanged);
 
     private void DrawerToggle() => _drawerOpen = !_drawerOpen;
     
@@ -87,4 +131,23 @@
         await AuthState.ClearUser();
         NavigationManager.NavigateTo("/login", true);
     }
+
+    public void Dispose()
+    {
+        AuthState.OnChange -= OnAuthStateChanged;
+        CarritoService.OnCarritoCambiado -= RederizarNavbar;
+    }
 }
+
+<style>
+    .fixed-cart {
+        position: fixed;
+        top: 12px;
+        right: 12px;
+        z-index: 2000;
+    }
+
+    @@media (max-width: 576px) {
+        .fixed-cart { top: 8px; right: 8px; }
+    }
+</style>

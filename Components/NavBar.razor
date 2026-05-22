@@ -1,5 +1,6 @@
 @inject Cafeteria.Services.AuthStateService AuthState
 @inject NavigationManager NavigationManager
+@inject Cafeteria.Services.CarritoStateService CarritoState
 
 <MudAppBar Elevation="1">
     <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" OnClick="@OnMenuClick" />
@@ -11,13 +12,30 @@
         <MudIconButton Icon="@Icons.Material.Filled.AdminPanelSettings" Color="Color.Inherit" OnClick='() => NavigationManager.NavigateTo("/admin-tools")' />
     }
     
-    <MudIconButton Icon="@Icons.Material.Filled.ShoppingCart" Color="Color.Inherit" />
+    <MudIconButton Color="Color.Inherit" OnClick='() => NavigationManager.NavigateTo("/carrito")'>
+        <MudBadge BadgeContent="@totalProductos" Color="Color.Error" Max="99">
+            <MudIcon Icon="@Icons.Material.Filled.ShoppingCart" />
+        </MudBadge>
+    </MudIconButton>
 </MudAppBar>
 
 @code {
     [Parameter] public EventCallback OnMenuClick { get; set; }
     
     private bool esAdmin = false;
+    private int totalProductos = 0;
+
+    protected override void OnInitialized()
+    {
+        CarritoState.OnCarritoCambiado += OnCarritoChanged;
+        totalProductos = CarritoState.TotalProductos;
+    }
+
+    private void OnCarritoChanged()
+    {
+        totalProductos = CarritoState.TotalProductos;
+        InvokeAsync(StateHasChanged);
+    }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -31,6 +49,17 @@
             esAdmin = AuthState.IsAdmin;
         }
         
+        // Inicializar el carrito si hay sesión (o dejar el local si no hay uid)
+        if (!string.IsNullOrEmpty(AuthState.CurrentUserId))
+        {
+            await CarritoState.InicializarCarritoAsync(AuthState.CurrentUserId);
+        }
+
         StateHasChanged();
+    }
+
+    public void Dispose()
+    {
+        CarritoState.OnCarritoCambiado -= OnCarritoChanged;
     }
 }

@@ -1,0 +1,74 @@
+@page "/admin/pedidos"
+@rendermode InteractiveServer
+@using Cafeteria.Models
+@inject Cafeteria.Services.FirebaseAuthService FirestoreService
+@inject ISnackbar Snackbar
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="mt-4">
+    <MudText Typo="Typo.h4" Class="mb-4">Gestión de Pedidos - Cocina Cafetería</MudText>
+    <MudGrid>
+        @if (todosLosPedidos == null)
+        {
+            <MudItem xs="12" Class="d-flex justify-center">
+                <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+            </MudItem>
+        }
+        else
+        {
+            @foreach (var pedido in todosLosPedidos.Where(p => p.Estado != "Entregado").OrderBy(p => p.FechaPedido))
+            {
+                <MudItem xs="12" sm="6" md="4">
+                    <MudCard Elevation="3" Class="pa-3">
+                        <MudCardHeader>
+                            <CardHeaderContent>
+                                <MudText Typo="Typo.h6">@pedido.NombreAlumno</MudText>
+                                <MudText Typo="Typo.caption">@pedido.FechaPedido.ToLocalTime().ToString("t")</MudText>
+                            </CardHeaderContent>
+                            <CardHeaderActions>
+                                <MudChip T="string" Color="Color.Primary" Variant="Variant.Text">Total: @pedido.Total.ToString("C")</MudChip>
+                            </CardHeaderActions>
+                        </MudCardHeader>
+                        <MudCardContent>
+                            <MudList T="string" Dense="true">
+                                @foreach (var item in pedido.Productos)
+                                {
+                                    <MudListItem Text="@($"{item.Nombre} [x{item.Cantidad}]")" Icon="@Icons.Material.Filled.CheckCircle" IconColor="Color.Success" />
+                                }
+                            </MudList>
+                            <MudSelect T="string" Label="Estado del Pedido" Value="@pedido.Estado" TChanged="async (e) => await CambiarEstado(pedido.Id, e)">
+                                <MudSelectItem Value="@("Pendiente")" />
+                                <MudSelectItem Value="@("En Preparación")" />
+                                <MudSelectItem Value="@("Listo para Recoger")" />
+                                <MudSelectItem Value="@("Entregado")" />
+                            </MudSelect>
+                        </MudCardContent>
+                    </MudCard>
+                </MudItem>
+            }
+        }
+    </MudGrid>
+</MudContainer>
+
+@code {
+    private List<TicketPedido>? todosLosPedidos;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && todosLosPedidos == null)
+        {
+            todosLosPedidos = await FirestoreService.ObtenerTodosLosPedidosAdminAsync();
+            StateHasChanged();
+        }
+    }
+
+    private async Task CambiarEstado(string ticketId, string nuevoEstado)
+    {
+        bool ok = await FirestoreService.ActualizarEstadoTicketAsync(ticketId, nuevoEstado);
+        if (ok)
+        {
+            Snackbar.Add("Estado actualizado correctamente.", Severity.Success);
+            todosLosPedidos = await FirestoreService.ObtenerTodosLosPedidosAdminAsync();
+            StateHasChanged();
+        }
+    }
+}

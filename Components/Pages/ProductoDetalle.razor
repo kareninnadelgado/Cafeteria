@@ -5,6 +5,8 @@
 @inject NavigationManager Navigation
 @inject Cafeteria.Services.AuthStateService AuthState
 @inject IJSRuntime JS
+@inject Cafeteria.Services.CarritoStateService CarritoState
+@inject MudBlazor.ISnackbar Snackbar
 
 <MudThemeProvider />
 <MudLayout>
@@ -256,14 +258,25 @@
         StateHasChanged();
     }
 
-    private void AgregarAlCarrito()
+    private async Task AgregarAlCarrito()
     {
-        Console.WriteLine($"\n=== AGREGANDO AL CARRITO ===");
-        Console.WriteLine($"ID: {producto?.Id}");
-        Console.WriteLine($"Producto: {producto?.Nombre}");
-        Console.WriteLine($"Precio: ${producto?.Precio}");
-        Console.WriteLine($"Personalizaciones: {string.Join(", ", selectedPersonalizaciones)}");
-        Console.WriteLine($"============================\n");
+        try
+        {
+            if (producto == null)
+            {
+                Snackbar.Add("Error: producto inválido.", MudBlazor.Severity.Error);
+                return;
+            }
+
+            var uid = AuthState.CurrentUserId ?? "";
+            await CarritoState.AgregarProductoAsync(uid, producto);
+            Snackbar.Add("Comida agregada al carrito", MudBlazor.Severity.Success);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error agregando al carrito: {ex.Message}");
+            Snackbar.Add("Error al agregar al carrito", MudBlazor.Severity.Error);
+        }
     }
 
     private void VolverAlMenu()
