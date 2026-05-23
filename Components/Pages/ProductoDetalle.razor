@@ -267,7 +267,11 @@
                 Snackbar.Add("Error: producto inválido.", MudBlazor.Severity.Error);
                 return;
             }
-
+            // Asegurar que la sesión esté cargada (ProtectedLocalStorage o fallback)
+            if (string.IsNullOrEmpty(AuthState.CurrentUserId))
+            {
+                await AuthState.CargarSesionDesdeLocalStorage();
+            }
             var uid = AuthState.CurrentUserId ?? "";
             await CarritoState.AgregarProductoAsync(uid, producto);
             Snackbar.Add("Comida agregada al carrito", MudBlazor.Severity.Success);

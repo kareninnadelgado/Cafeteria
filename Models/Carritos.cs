@@ -7,6 +7,7 @@ public class CarritoItem
     public double Precio { get; set; }
     public int Cantidad { get; set; }
     public string ImagenUrl { get; set; } = string.Empty;
+    public List<string> Personalizaciones { get; set; } = new();
     // Propiedad calculada para el subtotal de este producto
     public double Subtotal => Precio * Cantidad;
 }

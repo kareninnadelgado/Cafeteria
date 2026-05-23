@@ -109,7 +109,11 @@ public class FirebaseAuthService
                         Nombre = f["nombre"]?["stringValue"]?.GetValue<string>() ?? "",
                         Precio = f["precio"]?["doubleValue"]?.GetValue<double>() ?? 0,
                         Cantidad = int.Parse(f["cantidad"]?["integerValue"]?.GetValue<string>() ?? "1"),
-                        ImagenUrl = f["imagenUrl"]?["stringValue"]?.GetValue<string>() ?? ""
+                        ImagenUrl = f["imagen"]?["stringValue"]?.GetValue<string>() ?? f["imagenUrl"]?["stringValue"]?.GetValue<string>() ?? "",
+                        Personalizaciones = f["personalizaciones"]?["arrayValue"]?["values"]?.AsArray()
+                            .Select(v => v?["stringValue"]?.GetValue<string>() ?? "")
+                            .Where(s => !string.IsNullOrEmpty(s))
+                            .ToList() ?? new List<string>()
                     });
                 }
             }
@@ -122,17 +126,18 @@ public class FirebaseAuthService
     {
         var url = $"https://firestore.googleapis.com/v1/projects/{projectId}/databases/(default)/documents/carritos/{uid}";
 
-        var fieldsItems = items.Select(i => new
+        var fieldsItems = items.Where(i => i != null).Select(i => new
         {
             mapValue = new
             {
                 fields = new
                 {
-                    productoId = new { stringValue = i.ProductoId },
-                    nombre = new { stringValue = i.Nombre },
+                    productoId = new { stringValue = i.ProductoId ?? "" },
+                    nombre = new { stringValue = i.Nombre ?? "" },
                     precio = new { doubleValue = i.Precio },
                     cantidad = new { integerValue = i.Cantidad.ToString() },
-                    imagenUrl = new { stringValue = i.ImagenUrl }
+                    imagen = new { stringValue = i.ImagenUrl ?? "" },
+                    personalizaciones = new { arrayValue = new { values = (i.Personalizaciones ?? new()).Select(p => new { stringValue = p }).ToArray() } }
                 }
             }
         }).ToArray();
@@ -231,7 +236,7 @@ public class FirebaseAuthService
                     ticket.FechaPedido = fecha;
                 }
 
-                var prodArray = fields["productos"]?["arrayValue"]?.AsObject()["values"]?.AsArray();
+                var prodArray = fields["productos"]?["arrayValue"]?["values"]?.AsArray();
                 if (prodArray != null)
                 {
                     foreach (var pNode in prodArray)
@@ -365,6 +370,15 @@ public class FirebaseAuthService
     {
         var productos = await ObtenerProductos();
         return productos.Select(p => p.Categoria).Where(c => !string.IsNullOrEmpty(c)).Distinct().ToList();
+    }
+
+    public async Task<Dictionary<string, int>> ObtenerCategoriasConConteo()
+    {
+        var productos = await ObtenerProductos();
+        return productos
+            .Where(p => !string.IsNullOrEmpty(p.Categoria))
+            .GroupBy(p => p.Categoria)
+            .ToDictionary(g => g.Key, g => g.Count());
     }
 
     public async Task<Producto?> ObtenerProductoPorId(string id)

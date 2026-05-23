@@ -8,7 +8,10 @@ public class CarritoStateService
 {
     private readonly IJSRuntime _js;
     private readonly FirebaseAuthService _firestoreService;
+    private readonly AuthStateService _authState;
     private List<CarritoItem> _items = new();
+    private bool _isInitialized = false;
+    private string? _ultimoUidInicializado = null;
 
     // Evento que notificará a la barra de navegación para actualizar el MudBadge
     public event Action? OnCarritoCambiado;
@@ -19,75 +22,84 @@ public class CarritoStateService
     public int TotalProductos => _items.Sum(i => i.Cantidad);
     public double TotalPagar => _items.Sum(i => i.Subtotal);
 
-    public CarritoStateService(IJSRuntime js, FirebaseAuthService firestoreService)
+    public CarritoStateService(IJSRuntime js, FirebaseAuthService firestoreService, AuthStateService authState)
     {
         _js = js;
         _firestoreService = firestoreService;
+        _authState = authState;
     }
 
     // Inicializa el carrito cargando desde LocalStorage o Firestore
     public async Task InicializarCarritoAsync(string uid)
     {
+        if (_isInitialized && _ultimoUidInicializado == uid) return;
+
         try
         {
-            // Si no hay uid, cargamos solo el carrito anónimo local (clave: carrito_)
+            _isInitialized = false; // Bloqueamos temporalmente mientras cargamos
+            _ultimoUidInicializado = uid;
             if (string.IsNullOrEmpty(uid))
             {
-                string? anonData = null;
-                try
-                {
-                    anonData = await _js.InvokeAsync<string>("localStorage.getItem", "carrito_");
-                }
-                catch
-                {
-                    // localStorage blocked (Tracking Prevention u otras políticas). Dejamos anonData null
-                    anonData = null;
-                }
-
+                var anonData = await TryGetLocalStorage("carrito_");
                 if (!string.IsNullOrEmpty(anonData))
                 {
-                    _items = JsonSerializer.Deserialize<List<CarritoItem>>(anonData) ?? new();
+                    try
+                    {
+                        _items = JsonSerializer.Deserialize<List<CarritoItem>>(anonData) ?? new();
+                    }
+                    catch
+                    {
+                        _items = new();
+                    }
                 }
-                else
-                {
-                    _items = new();
-                }
+                _isInitialized = true;
                 NotifyStateChanged();
                 return;
             }
 
-            // 1. Intentar cargar desde LocalStorage local con uid
-            string? localData = null;
+            // Cargar desde Firestore (Fuente de verdad)
             try
             {
-                localData = await _js.InvokeAsync<string>("localStorage.getItem", $"carrito_{uid}");
+                var cloudItems = await _firestoreService.ObtenerCarritoAsync(uid);
+                // Si hay items en la nube, los tomamos como fuente de verdad
+                if (cloudItems != null && cloudItems.Any())
+                {
+                    _items = cloudItems;
+                    _isInitialized = true;
+                    // sincronizar local
+                    await GuardarCambiosLocalYCloudAsync(uid);
+                    NotifyStateChanged();
+                    return;
+                }
             }
             catch
-            {
-                // acceso a localStorage falló
-                localData = null;
-            }
+            { }
 
+            var localData = await TryGetLocalStorage($"carrito_{uid}");
             if (!string.IsNullOrEmpty(localData))
             {
-                _items = JsonSerializer.Deserialize<List<CarritoItem>>(localData) ?? new();
-            }
-            else
-            {
-                // 2. Si no hay nada local para este uid, comprobar si existe un carrito anónimo y migrarlo
-                string? anonData = null;
                 try
                 {
-                    anonData = await _js.InvokeAsync<string>("localStorage.getItem", "carrito_");
+                    _items = JsonSerializer.Deserialize<List<CarritoItem>>(localData) ?? new();
                 }
                 catch
                 {
-                    anonData = null;
+                    _items = new();
                 }
-
+            }
+            else
+            {
+                var anonData = await TryGetLocalStorage("carrito_");
                 if (!string.IsNullOrEmpty(anonData))
                 {
-                    _items = JsonSerializer.Deserialize<List<CarritoItem>>(anonData) ?? new();
+                    try
+                    {
+                        _items = JsonSerializer.Deserialize<List<CarritoItem>>(anonData) ?? new();
+                    }
+                    catch
+                    {
+                        _items = new();
+                    }
                     // Guardar migrado bajo el uid y en Firestore
                     await GuardarCambiosLocalYCloudAsync(uid);
                     // eliminar la copia anónima
@@ -95,17 +107,8 @@ public class CarritoStateService
                 }
                 else
                 {
-                    // 3. Si no hay copia local (o acceso a localStorage está bloqueado), intentar recuperar desde Firestore
-                    try
-                    {
-                        _items = await _firestoreService.ObtenerCarritoAsync(uid);
-                        await GuardarCambiosLocalYCloudAsync(uid);
-                    }
-                    catch
-                    {
-                        // En caso de fallo, mantener el carrito vacío pero no romper la UI
-                        _items = new();
-                    }
+                    // 3. Si no hay copia local (o acceso a localStorage está bloqueado), mantener vacío
+                    _items = new();
                 }
             }
         }
@@ -113,12 +116,19 @@ public class CarritoStateService
         {
             _items = new();
         }
+        _isInitialized = true;
         NotifyStateChanged();
     }
 
-    public async Task AgregarProductoAsync(string uid, Producto producto)
+    public async Task AgregarProductoAsync(string uid, Producto producto, List<string>? personalizaciones = null)
     {
-        var itemExistente = _items.FirstOrDefault(i => i.ProductoId == producto.Id);
+        if (!_isInitialized) await InicializarCarritoAsync(uid);
+        if (string.IsNullOrEmpty(uid)) uid = _authState.CurrentUserId ?? string.Empty;
+        var seleccionadas = personalizaciones ?? new List<string>();
+
+        // Buscamos si ya existe el MISMO producto con las MISMAS personalizaciones
+        var itemExistente = _items.FirstOrDefault(i => i.ProductoId == producto.Id 
+            && i.Personalizaciones.SequenceEqual(seleccionadas));
 
         if (itemExistente != null)
         {
@@ -132,7 +142,8 @@ public class CarritoStateService
                 Nombre = producto.Nombre,
                 Precio = producto.Precio,
                 Cantidad = 1,
-                ImagenUrl = producto.ImagenUrl
+                ImagenUrl = producto.ImagenUrl,
+                Personalizaciones = seleccionadas
             });
         }
 
@@ -141,6 +152,8 @@ public class CarritoStateService
 
     public async Task ModificarCantidadAsync(string uid, string productoId, int nuevaCantidad)
     {
+        if (string.IsNullOrEmpty(uid)) uid = _authState.CurrentUserId ?? string.Empty;
+
         var item = _items.FirstOrDefault(i => i.ProductoId == productoId);
         if (item != null)
         {
@@ -153,36 +166,58 @@ public class CarritoStateService
 
     public async Task VaciarCarritoAsync(string uid)
     {
+        if (string.IsNullOrEmpty(uid)) uid = _authState.CurrentUserId ?? string.Empty;
+
         _items.Clear();
         await GuardarCambiosLocalYCloudAsync(uid);
     }
 
     private async Task GuardarCambiosLocalYCloudAsync(string uid)
     {
+        // No guardar si no hemos terminado de inicializar para evitar sobrescribir con vacío
+        if (!_isInitialized) return;
+
         var json = JsonSerializer.Serialize(_items);
-        // Persistencia en LocalStorage (proteger contra bloqueos del navegador)
+        var key = string.IsNullOrEmpty(uid) ? "carrito_" : $"carrito_{uid}";
         try
         {
-            await _js.InvokeVoidAsync("localStorage.setItem", $"carrito_{uid}", json);
+            await _js.InvokeVoidAsync("localStorage.setItem", key, json);
+            Console.WriteLine($"LocalStorage: guardado bajo clave={key}, items={_items.Count}");
         }
-        catch
+        catch (Exception ex)
         {
-            // Ignorar fallos de acceso a localStorage (Tracking Prevention, etc.)
+            Console.WriteLine($"LocalStorage: fallo guardando clave={key}: {ex.Message}");
         }
+
         // Persistencia en Firestore solo si hay un uid válido
         if (!string.IsNullOrEmpty(uid))
         {
             try
             {
-                await _firestoreService.GuardarCarritoAsync(uid, _items);
+                var ok = await _firestoreService.GuardarCarritoAsync(uid, _items);
+                Console.WriteLine($"Firestore: intento guardar carrito uid={uid}, items={_items.Count}, ok={ok}");
+                if (!ok)
+                {
+                    Console.WriteLine($"Warning: guardar carrito en Firestore devolvió false para uid={uid}");
+                }
             }
-            catch
+            catch (Exception ex)
             {
-                // Ignorar errores de red/Firestore para no romper la experiencia local
+                Console.WriteLine($"Exception al guardar carrito en Firestore: {ex.Message}");
             }
         }
 
         NotifyStateChanged();
+    }
+
+    private async Task<string?> TryGetLocalStorage(string key)
+    {
+        try 
+        { 
+            // Solo intentar si JS está disponible (evita error en prerendering)
+            return await _js.InvokeAsync<string>("localStorage.getItem", key); 
+        }
+        catch { return null; }
     }
 
     private void NotifyStateChanged() => OnCarritoCambiado?.Invoke();
