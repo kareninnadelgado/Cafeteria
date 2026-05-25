@@ -65,6 +65,10 @@ build_metadata.AdditionalFiles.CssScope =
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xIb21lLnJhem9y
 build_metadata.AdditionalFiles.CssScope = 
 
+[C:/Users/Colibecas/OneDrive/Desktop/Cafetería_DEIU/Cafeteria/Components/Pages/JuegoNutricion.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xKdWVnb051dHJpY2lvbi5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
 [C:/Users/Colibecas/OneDrive/Desktop/Cafetería_DEIU/Cafeteria/Components/Pages/Login.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xMb2dpbi5yYXpvcg==
 build_metadata.AdditionalFiles.CssScope = 
@@ -89,12 +93,20 @@ build_metadata.AdditionalFiles.CssScope =
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xQYW5lbEFkbWluUGVkaWRvcy5yYXpvcg==
 build_metadata.AdditionalFiles.CssScope = 
 
+[C:/Users/Colibecas/OneDrive/Desktop/Cafetería_DEIU/Cafeteria/Components/Pages/PedidoSeguimiento.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xQZWRpZG9TZWd1aW1pZW50by5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
 [C:/Users/Colibecas/OneDrive/Desktop/Cafetería_DEIU/Cafeteria/Components/Pages/ProductoDetalle.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xQcm9kdWN0b0RldGFsbGUucmF6b3I=
 build_metadata.AdditionalFiles.CssScope = 
 
 [C:/Users/Colibecas/OneDrive/Desktop/Cafetería_DEIU/Cafeteria/Components/Pages/Register.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xSZWdpc3Rlci5yYXpvcg==
+build_metadata.AdditionalFiles.CssScope = 
+
+[C:/Users/Colibecas/OneDrive/Desktop/Cafetería_DEIU/Cafeteria/Components/Pages/RetoNutricional.razor]
+build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xSZXRvTnV0cmljaW9uYWwucmF6b3I=
 build_metadata.AdditionalFiles.CssScope = 
 
 [C:/Users/Colibecas/OneDrive/Desktop/Cafetería_DEIU/Cafeteria/Components/Pages/Weather.razor]

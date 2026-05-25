@@ -1,0 +1,171 @@
+@using MudBlazor
+
+<MudPaper Elevation="0" Class="pa-0 text-center" Style="background: transparent;">
+    @if (juegoCompletado)
+    {
+        <MudAlert Severity="Severity.Success" Variant="Variant.Filled" ContentAlignment="HorizontalAlignment.Center" Class="mb-4" Style="border-radius: 12px;">
+            ¡Felicidades, Experto en Nutrición! Has completado el reto.
+        </MudAlert>
+        <MudButton Variant="Variant.Outlined" Color="Color.Primary" OnClick="InicializarJuego" Class="mb-4" Style="border-radius: 20px;">
+            Jugar de nuevo
+        </MudButton>
+    }
+
+    <!-- Tablero de Juego -->
+    <MudGrid Spacing="2" Justify="Justify.Center">
+        @foreach (var carta in cartas)
+        {
+            <MudItem xs="4" sm="3">
+                <MudCard Elevation="2" 
+                         @onclick="() => VoltearCarta(carta)"
+                         Style="@ObtenerEstiloCarta(carta)">
+                    
+                    @if (carta.EstaVolteada || carta.FueEncontrada)
+                    {
+                        <div class="text-center">
+                            <MudIcon Icon="@carta.Icono" Size="Size.Large" Class="mb-1" />
+                            <MudText Style="font-size: 0.6rem; font-weight: bold; line-height: 1;">
+                                @carta.Nombre.ToUpper()
+                            </MudText>
+                        </div>
+                    }
+                    else
+                    {
+                        <MudIcon Icon="@Icons.Material.Filled.Restaurant" Size="Size.Large" Color="Color.Default" Style="opacity: 0.5;" />
+                    }
+                </MudCard>
+            </MudItem>
+        }
+    </MudGrid>
+
+    <MudText Typo="Typo.caption" Class="mt-4 d-block" Style="color: gray;">
+        Pares encontrados: @paresEncontrados / 6
+    </MudText>
+</MudPaper>
+
+@code {
+    public class CartaMemorama
+    {
+        public int Id { get; set; }
+        public string Nombre { get; set; } = "";
+        public string Grupo { get; set; } = ""; 
+        public string Icono { get; set; } = "";
+        public bool EstaVolteada { get; set; }
+        public bool FueEncontrada { get; set; }
+    }
+
+    private List<CartaMemorama> cartas = new();
+    private CartaMemorama? primeraCartaSeleccionada;
+    private CartaMemorama? segundaCartaSeleccionada;
+    private bool estaBloqueado = false;
+    private int paresEncontrados = 0;
+    private bool juegoCompletado => paresEncontrados == 6;
+
+    protected override void OnInitialized()
+    {
+        InicializarJuego();
+    }
+
+    private void InicializarJuego()
+    {
+        cartas.Clear();
+        paresEncontrados = 0;
+        primeraCartaSeleccionada = null;
+        segundaCartaSeleccionada = null;
+        estaBloqueado = false;
+
+        var alimentosBase = new List<CartaMemorama>
+        {
+            new() { Nombre = "Manzana", Grupo = "Fruta", Icono = Icons.Material.Filled.Favorite },
+            new() { Nombre = "Zanahoria", Grupo = "Fruta", Icono = Icons.Material.Filled.Spa },
+            new() { Nombre = "Pan", Grupo = "Cereal", Icono = Icons.Material.Filled.BakeryDining },
+            new() { Nombre = "Elote", Grupo = "Cereal", Icono = Icons.Material.Filled.Grass },
+            new() { Nombre = "Pollo", Grupo = "Proteina", Icono = Icons.Material.Filled.KebabDining },
+            new() { Nombre = "Pescado", Grupo = "Proteina", Icono = Icons.Material.Filled.SetMeal }
+        };
+
+        int idContador = 1;
+        foreach (var baseItem in alimentosBase)
+        {
+            cartas.Add(new CartaMemorama { Id = idContador++, Nombre = baseItem.Nombre, Grupo = baseItem.Grupo, Icono = baseItem.Icono });
+            cartas.Add(new CartaMemorama { Id = idContador++, Nombre = baseItem.Nombre, Grupo = baseItem.Grupo, Icono = baseItem.Icono });
+        }
+
+        Random rnd = new Random();
+        for (int i = cartas.Count - 1; i > 0; i--)
+        {
+            int j = rnd.Next(i + 1);
+            var temp = cartas[i];
+            cartas[i] = cartas[j];
+            cartas[j] = temp;
+        }
+    }
+
+    private async Task VoltearCarta(CartaMemorama carta)
+    {
+        if (estaBloqueado || carta.EstaVolteada || carta.FueEncontrada) return;
+        carta.EstaVolteada = true;
+
+        if (primeraCartaSeleccionada == null)
+        {
+            primeraCartaSeleccionada = carta;
+        }
+        else
+        {
+            segundaCartaSeleccionada = carta;
+            estaBloqueado = true;
+            StateHasChanged();
+
+            if (primeraCartaSeleccionada.Nombre == segundaCartaSeleccionada.Nombre)
+            {
+                primeraCartaSeleccionada.FueEncontrada = true;
+                segundaCartaSeleccionada.FueEncontrada = true;
+                paresEncontrados++;
+                ResetearTurno();
+            }
+            else
+            {
+                await Task.Delay(1000);
+                primeraCartaSeleccionada.EstaVolteada = false;
+                segundaCartaSeleccionada.EstaVolteada = false;
+                ResetearTurno();
+            }
+        }
+        StateHasChanged();
+    }
+
+    private void ResetearTurno()
+    {
+        primeraCartaSeleccionada = null;
+        segundaCartaSeleccionada = null;
+        estaBloqueado = false;
+    }
+
+    private string ObtenerEstiloCarta(CartaMemorama carta)
+    {
+        string baseStyle = "border-radius: 12px; height: 85px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.3s ease;";
+        
+        if (carta.EstaVolteada || carta.FueEncontrada)
+        {
+            string colorFondo = carta.Grupo switch
+            {
+                "Fruta" => "#E8F5E9",
+                "Cereal" => "#FFFDE7",
+                "Proteina" => "#FFEBEE",
+                _ => "#F5F5F5"
+            };
+            
+            string colorBorde = carta.Grupo switch
+            {
+                "Fruta" => "#4CAF50",
+                "Cereal" => "#FBC02D",
+                "Proteina" => "#EF5350",
+                _ => "#BDBDBD"
+            };
+
+            return $"{baseStyle} background-color: {colorFondo}; border: 2px solid {colorBorde};";
+        }
+        
+        return $"{baseStyle} background-color: #EEEEEE; border: 2px solid transparent;";
+    }
+}
