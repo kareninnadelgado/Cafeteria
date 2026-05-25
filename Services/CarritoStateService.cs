@@ -172,6 +172,16 @@ public class CarritoStateService
         await GuardarCambiosLocalYCloudAsync(uid);
     }
 
+    // Limpia el estado en memoria para cuando un usuario cierra sesión, 
+    // sin afectar los datos guardados en Firestore.
+    public void LimpiarEstadoLocal()
+    {
+        _items.Clear();
+        _isInitialized = false;
+        _ultimoUidInicializado = null;
+        NotifyStateChanged();
+    }
+
     private async Task GuardarCambiosLocalYCloudAsync(string uid)
     {
         // No guardar si no hemos terminado de inicializar para evitar sobrescribir con vacío

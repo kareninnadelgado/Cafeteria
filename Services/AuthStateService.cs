@@ -1,11 +1,12 @@
 using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage;
+using Microsoft.JSInterop;
 
 namespace Cafeteria.Services;
 
 public class AuthStateService
 {
     private readonly ProtectedLocalStorage _protectedLocalStorage;
-    private readonly Microsoft.JSInterop.IJSRuntime _js;
+    private readonly IJSRuntime _js;
     
     public string? CurrentUserId { get; private set; }
     public string? CurrentUserEmail { get; private set; }
@@ -16,7 +17,7 @@ public class AuthStateService
 
     public event Action? OnChange;
 
-    public AuthStateService(ProtectedLocalStorage protectedLocalStorage, Microsoft.JSInterop.IJSRuntime js)
+    public AuthStateService(ProtectedLocalStorage protectedLocalStorage, IJSRuntime js)
     {
         _protectedLocalStorage = protectedLocalStorage;
         _js = js;
@@ -114,6 +115,15 @@ public class AuthStateService
         await _protectedLocalStorage.DeleteAsync("userEmail");
         await _protectedLocalStorage.DeleteAsync("userRol");
         
+        // También limpiar el localStorage base para evitar que el fallback recupere la sesión
+        try
+        {
+            await _js.InvokeVoidAsync("localStorage.removeItem", "userId");
+            await _js.InvokeVoidAsync("localStorage.removeItem", "userEmail");
+            await _js.InvokeVoidAsync("localStorage.removeItem", "userRol");
+        }
+        catch { }
+
         NotifyStateChanged();
     }
 
