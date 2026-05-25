@@ -38,6 +38,13 @@ Este proyecto es una aplicación web progresiva (PWA) desarrollada en **Blazor**
   - Añadir nuevos productos
 - Botón de cierre de sesión con diseño Material Design.
 
+### 🎮 Ludificación y Experiencia del Alumno (Fun UX)
+- **Gestión de la Espera Pasiva:** Implementé una estrategia de UX para mitigar la ansiedad del alumno durante la preparación de su comida mediante un mini-juego interactivo directamente relacionado con la nutrición.
+- **Reto Nutricional (Memorama):** Desarrollé un juego de memoria basado en el "Plato del Bien Comer" mediante el componente reutilizable `JuegoNutricion.razor`. El objetivo es emparejar alimentos del mismo grupo (Frutas/Verduras, Cereales, Proteínas), fomentando hábitos saludables de forma divertida.
+- **Integración en el Flujo de Pedidos:** Añadí lógica dinámica en `MisPedidos.razor` para mostrar un acceso al seguimiento y al juego únicamente cuando el alumno tiene órdenes activas (estados "Pendiente" o "En Preparación").
+- **Navegación Centralizada:** Actualicé la `NavBar` con un menú de perfil de usuario (`MudMenu`) que permite al alumno navegar de forma fluida entre el Menú Principal, sus Pedidos y el Reto Nutricional.
+- **Diseño Adaptativo y Semántico:** El juego utiliza colores semánticos (Verde, Amarillo, Rojo) alineados con las normas oficiales de salud y una interfaz responsiva de MudBlazor que garantiza la jugabilidad en dispositivos móviles.
+
 ---
 
 ## 🤖 Uso de Inteligencia Artificial
@@ -105,4 +112,3 @@ Para la interfaz decidí seguir Material Design por las siguientes razones:
 Estas razones guiaron las decisiones de componentes, elevaciones, radios, tipografías y comportamiento interactivo en todo el módulo.
 
 ---
-
