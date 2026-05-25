@@ -18,7 +18,9 @@
             
             @if (esAdmin)
             {
-                <MudIconButton Icon="@Icons.Material.Filled.AdminPanelSettings" Color="Color.Inherit" OnClick='() => NavigationManager.NavigateTo("/admin/pedidos")' />
+
+                <MudIconButton Icon="@Icons.Material.Filled.AdminPanelSettings" Color="Color.Inherit" OnClick='() => NavigationManager.NavigateTo("/admin-tools")' />
+
             }
             
             @* Carrito fijo para alumnos: se muestra fuera del AppBar (CSS position fixed) *@
@@ -37,7 +39,13 @@
                 </MudBadge>
             </div>
         }
-        <MudDrawer @bind-Open="_drawerOpen" Elevation="2">
+
+        <MudDrawer @bind-Open="_drawerOpen" 
+           Elevation="2" 
+           Anchor="Anchor.Left" 
+           Variant="DrawerVariant.Responsive" 
+           PreserveOpenState="false">
+
             <MudNavMenu>
                 <MudNavLink Href="/menu" Match="NavLinkMatch.Prefix">
                     <MudIcon Icon="@Icons.Material.Filled.RestaurantMenu" /> Menú

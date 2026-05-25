@@ -4,6 +4,7 @@
 @using Cafeteria.Services
 @inject CarritoStateService CarritoService
 @inject AuthStateService AuthState
+@inject Cafeteria.Services.FirebaseAuthService FirestoreService
 @implements IDisposable
 
 <MudContainer MaxWidth="MaxWidth.Medium" Class="mt-8">
@@ -76,9 +77,22 @@
                         @CarritoService.TotalPagar.ToString("C")
                     </MudText>
                 </div>
-                <MudButton Variant="Variant.Filled" Color="Color.Primary" FullWidth="true" 
-                           Size="Size.Large" Style="border-radius: 12px; height: 56px; font-weight: bold;">
-                    FINALIZAR PEDIDO
+                <MudButton Variant="Variant.Filled" 
+                        Color="Color.Primary" 
+                        FullWidth="true" 
+                        Size="Size.Large" 
+                        Style="border-radius: 12px; height: 56px; font-weight: bold;"
+                        Disabled="@_procesandoPedido"
+                        OnClick="FinalizarPedidoAsync">
+                    @if (_procesandoPedido)
+                    {
+                        <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
+                        <MudText Class="ms-2">PROCESANDO PEDIDO...</MudText>
+                    }
+                    else
+                    {
+                        <MudText>FINALIZAR PEDIDO</MudText>
+                    }
                 </MudButton>
             </MudPaper>
         </MudPaper>
@@ -86,7 +100,11 @@
 </MudContainer>
 
 @code {
+    [Inject] private IJSRuntime JS { get; set; } = default!;
+    [Inject] private ISnackbar Snackbar { get; set; } = default!;
+    
     private bool _cargandoDatos = true;
+    private bool _procesandoPedido = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -126,9 +144,82 @@
         await CarritoService.ModificarCantidadAsync(AuthState.CurrentUserId ?? "", productoId, 0);
     }
 
+    private async Task FinalizarPedidoAsync()
+    {
+        if (CarritoService.Items == null || !CarritoService.Items.Any())
+        {
+            Snackbar.Add("El carrito está vacío.", Severity.Warning);
+            return;
+        }
+
+        try
+        {
+            _procesandoPedido = true;
+            StateHasChanged();
+
+            string uid = AuthState.CurrentUserId ?? "anonimo";
+            string clienteEmail = AuthState.CurrentUserEmail ?? "Estudiante UCOL";
+
+            // 1. Persistencia oficial del Ticket en Firestore NoSQL
+            bool guardadoExitoso = await FirestoreService.CrearTicketPedidoAsync(
+                uid, 
+                clienteEmail, 
+                CarritoService.Items, 
+                CarritoService.TotalPagar
+            );
+
+            if (!guardadoExitoso)
+            {
+                Snackbar.Add("Hubo un problema al registrar el pedido en el servidor. Inténtalo de nuevo.", Severity.Error);
+                _procesandoPedido = false;
+                return;
+            }
+
+            // 2. Construcción de la comanda para envío de salida vía WhatsApp
+            string numeroCafeteria = "523121683624";
+            var sb = new System.Text.StringBuilder();
+            sb.AppendLine("*NUEVO PEDIDO*");
+            sb.AppendLine("#id: " + Guid.NewGuid().ToString("N").Substring(0, 8).ToUpper());
+            sb.AppendLine($"*Cliente:* {clienteEmail}");
+            sb.AppendLine("*Productos:*");
+
+            foreach (var item in CarritoService.Items)
+            {
+                sb.AppendLine($"*• {item.Cantidad}x* {item.Nombre} (Subtotal: {item.Subtotal.ToString("C")})");
+                if (item.Personalizaciones != null && item.Personalizaciones.Any())
+                {
+                    sb.AppendLine($"   _Opciones: {string.Join(", ", item.Personalizaciones)}_");
+                }
+                sb.AppendLine();
+            }
+
+            sb.AppendLine("==========================================");
+            sb.AppendLine($"*Total Neto a Pagar:* {CarritoService.TotalPagar.ToString("C")}");
+
+            string mensajeUrl = Uri.EscapeDataString(sb.ToString());
+            string urlWhatsApp = $"https://api.whatsapp.com/send?phone={numeroCafeteria}&text={mensajeUrl}";
+
+            // 3. Limpieza inmediata del carrito local y en la nube
+            await CarritoService.VaciarCarritoAsync(uid);
+            Snackbar.Add("¡Pedido registrado con éxito!", Severity.Success);
+
+            // 4. Interoperabilidad JS para abrir pasarela externa
+            await JS.InvokeVoidAsync("open", urlWhatsApp, "_blank");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error en el flujo de checkout: {ex.Message}");
+            Snackbar.Add("Ocurrió un error inesperado al finalizar el pedido.", Severity.Error);
+        }
+        finally
+        {
+            _procesandoPedido = false;
+            StateHasChanged();
+        }
+    }
+
     public void Dispose()
     {
-        // Desvincular el evento para evitar fugas de memoria
         CarritoService.OnCarritoCambiado -= OnNotify;
         AuthState.OnChange -= OnNotify;
     }
