@@ -158,18 +158,6 @@
                     </MudCard>
                 </MudItem>
             </MudGrid>
-
-            <!-- Botón de cerrar sesión -->
-            <div class="text-center mt-5">
-                <MudButton Variant="Variant.Outlined" 
-                           Color="Color.Error" 
-                           Size="Size.Large"
-                           OnClick="CerrarSesion"
-                           StartIcon="@Icons.Material.Filled.Logout"
-                           Style="border-radius: 40px; padding-left: 32px; padding-right: 32px;">
-                    Cerrar sesión
-                </MudButton>
-            </div>
         }
     </MudContainer>
 </MudLayout>
@@ -222,11 +210,5 @@
             estaVerificando = false;
             StateHasChanged();
         }
-    }
-
-    private async Task CerrarSesion()
-    {
-        await AuthState.ClearUser();
-        Navigation.NavigateTo("/login", true);
     }
 }

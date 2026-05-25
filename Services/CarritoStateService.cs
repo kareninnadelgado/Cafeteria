@@ -4,7 +4,7 @@ using System.Text.Json;
 
 namespace Cafeteria.Services;
 
-public class CarritoStateService
+public class CarritoStateService : IDisposable
 {
     private readonly IJSRuntime _js;
     private readonly FirebaseAuthService _firestoreService;
@@ -27,6 +27,17 @@ public class CarritoStateService
         _js = js;
         _firestoreService = firestoreService;
         _authState = authState;
+
+        // Suscripción automática: cuando el estado de autenticación cambie (ej. Logout), limpiamos el carrito
+        _authState.OnChange += HandleAuthStateChanged;
+    }
+
+    private void HandleAuthStateChanged()
+    {
+        if (!_authState.IsAuthenticated)
+        {
+            LimpiarEstadoLocal();
+        }
     }
 
     // Inicializa el carrito cargando desde LocalStorage o Firestore
@@ -232,4 +243,9 @@ public class CarritoStateService
 
     private void NotifyStateChanged() => OnCarritoCambiado?.Invoke();
     
+    public void Dispose()
+    {
+        // Desvincular el evento para evitar fugas de memoria
+        _authState.OnChange -= HandleAuthStateChanged;
+    }
 }

@@ -271,3 +271,5 @@ C:\Users\Colibecas\OneDrive\Desktop\Cafetería_DEIU\Cafeteria\obj\Debug\net10.0\
 C:\Users\Colibecas\OneDrive\Desktop\Cafetería_DEIU\Cafeteria\obj\Debug\net10.0\Cafeteria.pdb
 C:\Users\Colibecas\OneDrive\Desktop\Cafetería_DEIU\Cafeteria\obj\Debug\net10.0\Cafeteria.genruntimeconfig.cache
 C:\Users\Colibecas\OneDrive\Desktop\Cafetería_DEIU\Cafeteria\obj\Debug\net10.0\ref\Cafeteria.dll
+C:\Users\Colibecas\OneDrive\Desktop\Cafetería_DEIU\Cafeteria\obj\Debug\net10.0\compressed\hbhd2revsh-{0}-53r7w00y6j-53r7w00y6j.gz
+C:\Users\Colibecas\OneDrive\Desktop\Cafetería_DEIU\Cafeteria\obj\Debug\net10.0\compressed\ay11l96wf4-{0}-t1auroe4z4-t1auroe4z4.gz
