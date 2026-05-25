@@ -35,7 +35,7 @@
                                     <MudListItem Text="@($"{item.Nombre} [x{item.Cantidad}]")" Icon="@Icons.Material.Filled.CheckCircle" IconColor="Color.Success" />
                                 }
                             </MudList>
-                            <MudSelect T="string" Label="Estado del Pedido" Value="@pedido.Estado" TChanged="async (e) => await CambiarEstado(pedido.Id, e)">
+                            <MudSelect T="string" Label="Estado del Pedido" Value="@pedido.Estado" ValueChanged="@(async (string e) => await CambiarEstado(pedido.Id, e))">
                                 <MudSelectItem Value="@("Pendiente")" />
                                 <MudSelectItem Value="@("En Preparación")" />
                                 <MudSelectItem Value="@("Listo para Recoger")" />
