@@ -131,32 +131,6 @@
                         </MudCardContent>
                     </MudCard>
                 </MudItem>
-
-                <!-- Otros / Configuración -->
-                <MudItem xs="12" sm="6" md="6">
-                    <MudCard Elevation="2" 
-                             ElevationHover="6"
-                             Class="admin-card"
-                             Style="border-radius: 20px; cursor: pointer; height: 100%; transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);"
-                             @onclick='() => Navigation.NavigateTo("/admin/otros")'>
-                        <MudCardContent Class="pa-6 text-center">
-                            <MudIcon Icon="@Icons.Material.Filled.Settings" 
-                                     Size="Size.Large" 
-                                     Color="Color.Default" 
-                                     Class="mb-3"
-                                     Style="font-size: 48px;" />
-                            <MudText Typo="Typo.h5" Class="mb-2 font-weight-medium">
-                                Otros
-                            </MudText>
-                            <MudText Typo="Typo.body2" Color="Color.Default" Class="mb-3">
-                                Configuración, reportes, personalizaciones globales y más opciones
-                            </MudText>
-                            <MudChip T="string" Size="Size.Small" Color="Color.Default" Variant="Variant.Outlined">
-                                Configuración
-                            </MudChip>
-                        </MudCardContent>
-                    </MudCard>
-                </MudItem>
             </MudGrid>
         }
     </MudContainer>

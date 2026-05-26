@@ -527,4 +527,57 @@ public class FirebaseAuthService
         var response = await _http.SendAsync(request);
         return response.IsSuccessStatusCode;
     }
+
+    // OBTENER TODOS LOS USUARIOS PARA EL PANEL DE ADMIN
+    public async Task<List<Usuario>> ObtenerTodosLosUsuarios()
+    {
+        var lista = new List<Usuario>();
+        var url = $"https://firestore.googleapis.com/v1/projects/{projectId}/databases/(default)/documents/usuarios";
+        var response = await _http.GetAsync(url);
+
+        if (!response.IsSuccessStatusCode) return lista;
+
+        var json = await response.Content.ReadAsStringAsync();
+        var root = JsonNode.Parse(json);
+        var documents = root?["documents"]?.AsArray();
+
+        if (documents != null)
+        {
+            foreach (var doc in documents)
+            {
+                var fields = doc?["fields"];
+                if (fields == null) continue;
+
+                var user = new Usuario();
+                var nameProperty = doc?["name"]?.GetValue<string>() ?? "";
+                user.Uid = !string.IsNullOrEmpty(nameProperty) ? nameProperty.Split('/').Last() : "";
+
+                user.Nombre = fields["nombre"]?["stringValue"]?.GetValue<string>() ?? "";
+                user.Correo = fields["correo"]?["stringValue"]?.GetValue<string>() ?? "";
+                user.Rol = fields["rol"]?["stringValue"]?.GetValue<string>() ?? "alumno";
+
+                if (DateTime.TryParse(fields["fechaRegistro"]?["stringValue"]?.GetValue<string>(), out var fecha))
+                {
+                    user.FechaRegistro = fecha;
+                }
+
+                lista.Add(user);
+            }
+        }
+        return lista;
+    }
+
+    // ACTUALIZAR ROL DE USUARIO
+    public async Task<bool> ActualizarRolUsuario(string uid, string nuevoRol)
+    {
+        var url = $"https://firestore.googleapis.com/v1/projects/{projectId}/databases/(default)/documents/usuarios/{uid}?updateMask.fieldPaths=rol";
+
+        var datos = new { fields = new { rol = new { stringValue = nuevoRol } } };
+        var json = JsonSerializer.Serialize(datos);
+        var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+        var request = new HttpRequestMessage(new HttpMethod("PATCH"), url) { Content = content };
+        var response = await _http.SendAsync(request);
+        return response.IsSuccessStatusCode;
+    }
 }
