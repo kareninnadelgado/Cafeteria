@@ -60,4 +60,4 @@ El prototipo funcional se encuentra desplegado en producción y es accesible de 
 ### Ejecución en Modo Desarrollo
 1. Clona este repositorio en tu máquina local:
    ```bash
-   git clone [https://github.com/AngelJimenezzz/Cafeteria-main.git](https://github.com/AngelJimenezzz/Cafeteria-main.git)
+git clone [https://github.com/kareninnadelgado/Cafeteria.git](https://github.com/kareninnadelgado/Cafeteria.git)
