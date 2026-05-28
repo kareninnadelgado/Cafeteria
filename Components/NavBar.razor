@@ -17,6 +17,22 @@
             <MudIcon Icon="@Icons.Material.Filled.ShoppingCart" />
         </MudBadge>
     </MudIconButton>
+
+    @if (AuthState.IsAuthenticated)
+    {
+        <MudMenu Icon="@Icons.Material.Filled.AccountCircle" Color="Color.Inherit" AnchorOrigin="Origin.BottomRight" TransformOrigin="Origin.TopRight">
+            <MudMenuItem OnClick='() => NavigationManager.NavigateTo("/")'>Menú Principal</MudMenuItem>
+            <MudMenuItem OnClick='() => NavigationManager.NavigateTo("/mis-pedidos")'>Mis Pedidos</MudMenuItem>
+            <MudMenuItem OnClick='() => NavigationManager.NavigateTo("/reto-nutricional")'>
+                <div class="d-flex align-center">
+                    <MudIcon Icon="@Icons.Material.Filled.SportsEsports" Size="Size.Small" Class="mr-2" Color="Color.Primary"/>
+                    <MudText Typo="Typo.body2">Reto Nutricional</MudText>
+                </div>
+            </MudMenuItem>
+            <MudDivider />
+            <MudMenuItem OnClick="HandleLogout">Cerrar Sesión</MudMenuItem>
+        </MudMenu>
+    }
 </MudAppBar>
 
 @code {
@@ -28,7 +44,15 @@
     protected override void OnInitialized()
     {
         CarritoState.OnCarritoCambiado += OnCarritoChanged;
+        AuthState.OnChange += OnAuthStateChanged;
         totalProductos = CarritoState.TotalProductos;
+    }
+
+    private void OnAuthStateChanged()
+    {
+        esAdmin = AuthState.IsAdmin;
+        totalProductos = CarritoState.TotalProductos;
+        InvokeAsync(StateHasChanged);
     }
 
     private void OnCarritoChanged()
@@ -58,8 +82,15 @@
         StateHasChanged();
     }
 
+    private async Task HandleLogout()
+    {
+        await AuthState.ClearUser();
+        NavigationManager.NavigateTo("/", true);
+    }
+
     public void Dispose()
     {
         CarritoState.OnCarritoCambiado -= OnCarritoChanged;
+        AuthState.OnChange -= OnAuthStateChanged;
     }
 }

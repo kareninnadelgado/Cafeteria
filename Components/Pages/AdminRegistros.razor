@@ -1,0 +1,114 @@
+@page "/admin/registros"
+@rendermode InteractiveServer
+@using Cafeteria.Models
+@inject Cafeteria.Services.FirebaseAuthService AuthService
+@inject Cafeteria.Services.AuthStateService AuthState
+@inject NavigationManager Navigation
+
+<PageTitle>Registro de Usuarios - Panel Admin</PageTitle>
+
+<MudContainer MaxWidth="MaxWidth.Large" Class="py-4">
+    
+    @if (estaVerificando)
+    {
+        <div class="d-flex justify-content-center mt-8">
+            <MudProgressCircular Indeterminate Color="Color.Primary" Size="Size.Large" />
+        </div>
+    }
+    else if (!esAdmin)
+    {
+        <MudPaper Class="pa-6 text-center" Style="border-radius: 20px;">
+            <MudIcon Icon="@Icons.Material.Filled.Lock" Size="Size.Large" Color="Color.Error" />
+            <MudText Typo="Typo.h4" Color="Color.Error">Acceso Denegado</MudText>
+            <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick='() => Navigation.NavigateTo("/")' Class="mt-4">
+                Volver al Menú
+            </MudButton>
+        </MudPaper>
+    }
+    else
+    {
+        <MudStack Row AlignItems="AlignItems.Center" Class="mb-6">
+            <MudIconButton Icon="@Icons.Material.Filled.ArrowBack" OnClick='() => Navigation.NavigateTo("/admin-tools")' />
+            <div>
+                <MudText Typo="Typo.h4" Class="font-weight-bold">Gestión de Usuarios</MudText>
+                <MudText Typo="Typo.body2" Color="Color.Secondary">Consulta y modifica roles de acceso</MudText>
+            </div>
+        </MudStack>
+
+        <MudTable Items="@usuarios" Hover="true" Breakpoint="Breakpoint.Sm" Loading="@cargando" Elevation="2" Style="border-radius: 16px;">
+            <HeaderContent>
+                <MudTh>Nombre</MudTh>
+                <MudTh>Correo</MudTh>
+                <MudTh>Rol Actual</MudTh>
+                <MudTh>Acciones (Cambiar Rol)</MudTh>
+            </HeaderContent>
+            <RowTemplate>
+                <MudTd DataLabel="Nombre">@context.Nombre</MudTd>
+                <MudTd DataLabel="Correo">@context.Correo</MudTd>
+                <MudTd DataLabel="Rol Actual">
+                    <MudChip T="string" Color="@(context.Rol == "admin" ? Color.Primary : Color.Default)" Size="Size.Small" Variant="Variant.Filled">
+                        @context.Rol.ToUpper()
+                    </MudChip>
+                </MudTd>
+                <MudTd DataLabel="Acciones">
+                    <MudSelect T="string" Value="@context.Rol" ValueChanged="@(async (val) => await CambiarRol(context.Uid, val))" 
+                               Dense="true" Margin="Margin.Dense" Variant="Variant.Outlined" Style="max-width: 150px; background-color: white;">
+                        <MudSelectItem Value='@("alumno")'>Alumno</MudSelectItem>
+                        <MudSelectItem Value='@("admin")'>Administrador</MudSelectItem>
+                    </MudSelect>
+                </MudTd>
+            </RowTemplate>
+            <PagerContent>
+                <MudTablePager InfoText="Usuarios por página" RowsPerPageString="Filas:" />
+            </PagerContent>
+        </MudTable>
+    }
+</MudContainer>
+
+@code {
+    private bool esAdmin = false;
+    private bool estaVerificando = true;
+    private bool cargando = true;
+    private List<Usuario> usuarios = new();
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await AuthState.CargarSesionDesdeLocalStorage();
+            var user = AuthState.ObtenerUsuarioActual();
+            
+            if (user != null && string.Equals(user.Rol, "admin", StringComparison.OrdinalIgnoreCase))
+            {
+                esAdmin = true;
+                await CargarUsuarios();
+            }
+            else
+            {
+                Navigation.NavigateTo("/");
+                return;
+            }
+            
+            estaVerificando = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task CargarUsuarios()
+    {
+        cargando = true;
+        usuarios = await AuthService.ObtenerTodosLosUsuarios();
+        cargando = false;
+    }
+
+    private async Task CambiarRol(string uid, string nuevoRol)
+    {
+        if (string.IsNullOrEmpty(uid) || string.IsNullOrEmpty(nuevoRol)) return;
+
+        var exito = await AuthService.ActualizarRolUsuario(uid, nuevoRol);
+        if (exito)
+        {
+            await CargarUsuarios();
+        }
+    }
+}

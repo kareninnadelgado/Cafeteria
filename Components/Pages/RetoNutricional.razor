@@ -1,0 +1,22 @@
+@page "/reto-nutricional"
+@using MudBlazor
+@using Cafeteria.Components.Pages
+@inject NavigationManager Navigation
+
+<MudContainer MaxWidth="MaxWidth.Small" Class="mt-8">
+    <MudStack AlignItems="AlignItems.Center" Class="mb-6">
+        <MudIcon Icon="@Icons.Material.Filled.EmojiEvents" Color="Color.Tertiary" Size="Size.Large" Style="font-size: 56px;" />
+        <MudText Typo="Typo.h4" Align="Align.Center" Style="font-weight: bold;">Reto Nutricional</MudText>
+        <MudText Typo="Typo.body1" Align="Align.Center">Encuentra los pares y aprende sobre los grupos alimenticios.</MudText>
+    </MudStack>
+
+    <MudPaper Class="pa-6" Elevation="4" Style="border-radius: 24px;">
+        <JuegoNutricion />
+    </MudPaper>
+
+    <div class="d-flex justify-center mt-6">
+        <MudButton Variant="Variant.Text" StartIcon="@Icons.Material.Filled.ArrowBack" OnClick='() => Navigation.NavigateTo("/")'>
+            Volver al Menú Principal
+        </MudButton>
+    </div>
+</MudContainer>

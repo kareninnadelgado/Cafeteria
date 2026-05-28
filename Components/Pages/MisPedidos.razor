@@ -2,6 +2,7 @@
 @rendermode InteractiveServer
 @inject Cafeteria.Services.FirebaseAuthService FirestoreService
 @inject Cafeteria.Services.AuthStateService AuthService
+@inject NavigationManager Navigation
 @using Cafeteria.Models
 
 <MudContainer MaxWidth="MaxWidth.Medium" Class="mt-4">
@@ -49,6 +50,21 @@
                     </div>
                 </ChildContent>
             </MudExpansionPanel>
+
+            @* Botón de seguimiento visible solo si el pedido está en proceso *@
+            @if (ticket.Estado == "Pendiente" || ticket.Estado == "En Preparación")
+            {
+                <div class="px-2 mb-4">
+                    <MudButton Variant="Variant.Filled" 
+                               Color="Color.Primary" 
+                               FullWidth="true" 
+                               StartIcon="@Icons.Material.Filled.SportsEsports" 
+                               OnClick='() => Navigation.NavigateTo("/pedido-seguimiento")'
+                               Style="border-radius: 12px; height: 40px; margin-top: -8px; z-index: 1;">
+                        Seguir Pedido y Jugar
+                    </MudButton>
+                </div>
+            }
         }
     }
 </MudContainer>
@@ -60,12 +76,25 @@
     {
         if (firstRender)
         {
+            // 1. Forzamos la carga de la sesión si aún no está lista
+            if (string.IsNullOrEmpty(AuthService.CurrentUserId))
+            {
+                await AuthService.CargarSesionDesdeLocalStorage();
+            }
+
+            // 2. Intentamos obtener los pedidos
             var user = AuthService.ObtenerUsuarioActual();
             if (user != null)
             {
                 misTickets = await FirestoreService.ObtenerPedidosPorUsuarioAsync(user.Uid);
-                StateHasChanged();
             }
+            else
+            {
+                misTickets = new List<TicketPedido>();
+            }
+            
+            // 3. Notificamos el cambio para ocultar el spinner y mostrar los datos/botón
+            StateHasChanged();
         }
     }
 
