@@ -11,112 +11,113 @@ build_property.ProjectTypeGuids =
 build_property.InvariantGlobalization = 
 build_property.PlatformNeutralAssembly = 
 build_property.EnforceExtendedAnalyzerRules = 
+build_property.EntryPointFilePath = 
 build_property._SupportedPlatformList = Linux,macOS,Windows
 build_property.RootNamespace = Cafeteria
 build_property.RootNamespace = Cafeteria
-build_property.ProjectDir = C:\Users\Colibecas\OneDrive\Desktop\Cafetería_DEIU\Cafeteria\
+build_property.ProjectDir = C:\Users\Colibecas\Downloads\Cafeteria-main\Cafeteria-main\
 build_property.EnableComHosting = 
 build_property.EnableGeneratedComInterfaceComImportInterop = 
-build_property.RazorLangVersion = 9.0
+build_property.RazorLangVersion = 10.0
 build_property.SupportLocalizedComponentNames = 
 build_property.GenerateRazorMetadataSourceChecksumAttributes = 
-build_property.MSBuildProjectDirectory = C:\Users\Colibecas\OneDrive\Desktop\Cafetería_DEIU\Cafeteria
+build_property.MSBuildProjectDirectory = C:\Users\Colibecas\Downloads\Cafeteria-main\Cafeteria-main
 build_property._RazorSourceGeneratorDebug = 
 build_property.EffectiveAnalysisLevelStyle = 10.0
 build_property.EnableCodeStyleSeverity = 
 
-[C:/Users/Colibecas/OneDrive/Desktop/Cafetería_DEIU/Cafeteria/Components/App.razor]
+[C:/Users/Colibecas/Downloads/Cafeteria-main/Cafeteria-main/Components/App.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xBcHAucmF6b3I=
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/Colibecas/OneDrive/Desktop/Cafetería_DEIU/Cafeteria/Components/AuthGuard.razor]
+[C:/Users/Colibecas/Downloads/Cafeteria-main/Cafeteria-main/Components/AuthGuard.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xBdXRoR3VhcmQucmF6b3I=
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/Colibecas/OneDrive/Desktop/Cafetería_DEIU/Cafeteria/Components/NavBar.razor]
+[C:/Users/Colibecas/Downloads/Cafeteria-main/Cafeteria-main/Components/NavBar.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xOYXZCYXIucmF6b3I=
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/Colibecas/OneDrive/Desktop/Cafetería_DEIU/Cafeteria/Components/Pages/AdminProductoEditar.razor]
+[C:/Users/Colibecas/Downloads/Cafeteria-main/Cafeteria-main/Components/Pages/AdminProductoEditar.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xBZG1pblByb2R1Y3RvRWRpdGFyLnJhem9y
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/Colibecas/OneDrive/Desktop/Cafetería_DEIU/Cafeteria/Components/Pages/AdminProductoNuevo.razor]
+[C:/Users/Colibecas/Downloads/Cafeteria-main/Cafeteria-main/Components/Pages/AdminProductoNuevo.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xBZG1pblByb2R1Y3RvTnVldm8ucmF6b3I=
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/Colibecas/OneDrive/Desktop/Cafetería_DEIU/Cafeteria/Components/Pages/AdminTools.razor]
+[C:/Users/Colibecas/Downloads/Cafeteria-main/Cafeteria-main/Components/Pages/AdminTools.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xBZG1pblRvb2xzLnJhem9y
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/Colibecas/OneDrive/Desktop/Cafetería_DEIU/Cafeteria/Components/Pages/Carrito.razor]
+[C:/Users/Colibecas/Downloads/Cafeteria-main/Cafeteria-main/Components/Pages/Carrito.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xDYXJyaXRvLnJhem9y
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/Colibecas/OneDrive/Desktop/Cafetería_DEIU/Cafeteria/Components/Pages/Counter.razor]
+[C:/Users/Colibecas/Downloads/Cafeteria-main/Cafeteria-main/Components/Pages/Counter.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xDb3VudGVyLnJhem9y
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/Colibecas/OneDrive/Desktop/Cafetería_DEIU/Cafeteria/Components/Pages/Error.razor]
+[C:/Users/Colibecas/Downloads/Cafeteria-main/Cafeteria-main/Components/Pages/Error.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xFcnJvci5yYXpvcg==
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/Colibecas/OneDrive/Desktop/Cafetería_DEIU/Cafeteria/Components/Pages/Home.razor]
+[C:/Users/Colibecas/Downloads/Cafeteria-main/Cafeteria-main/Components/Pages/Home.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xIb21lLnJhem9y
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/Colibecas/OneDrive/Desktop/Cafetería_DEIU/Cafeteria/Components/Pages/Login.razor]
+[C:/Users/Colibecas/Downloads/Cafeteria-main/Cafeteria-main/Components/Pages/Login.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xMb2dpbi5yYXpvcg==
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/Colibecas/OneDrive/Desktop/Cafetería_DEIU/Cafeteria/Components/Pages/Logout.razor]
+[C:/Users/Colibecas/Downloads/Cafeteria-main/Cafeteria-main/Components/Pages/Logout.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xMb2dvdXQucmF6b3I=
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/Colibecas/OneDrive/Desktop/Cafetería_DEIU/Cafeteria/Components/Pages/Menu.razor]
+[C:/Users/Colibecas/Downloads/Cafeteria-main/Cafeteria-main/Components/Pages/Menu.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xNZW51LnJhem9y
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/Colibecas/OneDrive/Desktop/Cafetería_DEIU/Cafeteria/Components/Pages/MisPedidos.razor]
+[C:/Users/Colibecas/Downloads/Cafeteria-main/Cafeteria-main/Components/Pages/MisPedidos.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xNaXNQZWRpZG9zLnJhem9y
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/Colibecas/OneDrive/Desktop/Cafetería_DEIU/Cafeteria/Components/Pages/NotFound.razor]
+[C:/Users/Colibecas/Downloads/Cafeteria-main/Cafeteria-main/Components/Pages/NotFound.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xOb3RGb3VuZC5yYXpvcg==
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/Colibecas/OneDrive/Desktop/Cafetería_DEIU/Cafeteria/Components/Pages/PanelAdminPedidos.razor]
+[C:/Users/Colibecas/Downloads/Cafeteria-main/Cafeteria-main/Components/Pages/PanelAdminPedidos.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xQYW5lbEFkbWluUGVkaWRvcy5yYXpvcg==
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/Colibecas/OneDrive/Desktop/Cafetería_DEIU/Cafeteria/Components/Pages/ProductoDetalle.razor]
+[C:/Users/Colibecas/Downloads/Cafeteria-main/Cafeteria-main/Components/Pages/ProductoDetalle.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xQcm9kdWN0b0RldGFsbGUucmF6b3I=
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/Colibecas/OneDrive/Desktop/Cafetería_DEIU/Cafeteria/Components/Pages/Register.razor]
+[C:/Users/Colibecas/Downloads/Cafeteria-main/Cafeteria-main/Components/Pages/Register.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xSZWdpc3Rlci5yYXpvcg==
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/Colibecas/OneDrive/Desktop/Cafetería_DEIU/Cafeteria/Components/Pages/Weather.razor]
+[C:/Users/Colibecas/Downloads/Cafeteria-main/Cafeteria-main/Components/Pages/Weather.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xQYWdlc1xXZWF0aGVyLnJhem9y
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/Colibecas/OneDrive/Desktop/Cafetería_DEIU/Cafeteria/Components/Routes.razor]
+[C:/Users/Colibecas/Downloads/Cafeteria-main/Cafeteria-main/Components/Routes.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xSb3V0ZXMucmF6b3I=
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/Colibecas/OneDrive/Desktop/Cafetería_DEIU/Cafeteria/Components/_Imports.razor]
+[C:/Users/Colibecas/Downloads/Cafeteria-main/Cafeteria-main/Components/_Imports.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xfSW1wb3J0cy5yYXpvcg==
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/Colibecas/OneDrive/Desktop/Cafetería_DEIU/Cafeteria/Components/Layout/MainLayout.razor]
+[C:/Users/Colibecas/Downloads/Cafeteria-main/Cafeteria-main/Components/Layout/MainLayout.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xMYXlvdXRcTWFpbkxheW91dC5yYXpvcg==
 build_metadata.AdditionalFiles.CssScope = b-jcgaz6nk09
 
-[C:/Users/Colibecas/OneDrive/Desktop/Cafetería_DEIU/Cafeteria/Components/Layout/NavMenu.razor]
+[C:/Users/Colibecas/Downloads/Cafeteria-main/Cafeteria-main/Components/Layout/NavMenu.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xMYXlvdXRcTmF2TWVudS5yYXpvcg==
 build_metadata.AdditionalFiles.CssScope = b-aye0q88x6c
 
-[C:/Users/Colibecas/OneDrive/Desktop/Cafetería_DEIU/Cafeteria/Components/Layout/ReconnectModal.razor]
+[C:/Users/Colibecas/Downloads/Cafeteria-main/Cafeteria-main/Components/Layout/ReconnectModal.razor]
 build_metadata.AdditionalFiles.TargetPath = Q29tcG9uZW50c1xMYXlvdXRcUmVjb25uZWN0TW9kYWwucmF6b3I=
 build_metadata.AdditionalFiles.CssScope = b-xt3x3o3o4r
