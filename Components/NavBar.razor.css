@@ -1,0 +1,16 @@
+::deep .carrito-blanco {
+    color: white !important;
+}
+
+::deep .carrito-blanco svg {
+    fill: white !important;
+    stroke: white !important;
+}
+
+::deep .carrito-blanco .mud-icon {
+    color: white !important;
+}
+
+::deep .carrito-blanco path {
+    fill: white !important;
+}

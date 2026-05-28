@@ -12,9 +12,8 @@
         <MudIconButton Icon="@Icons.Material.Filled.AdminPanelSettings" Color="Color.Inherit" OnClick='() => NavigationManager.NavigateTo("/admin-tools")' />
     }
     
-    <MudIconButton Color="Color.Inherit" OnClick='() => NavigationManager.NavigateTo("/carrito")'>
+    <MudIconButton Icon="@Icons.Material.Filled.ShoppingCart" Class="carrito-blanco" OnClick='() => NavigationManager.NavigateTo("/carrito")'>
         <MudBadge BadgeContent="@totalProductos" Color="Color.Error" Max="99">
-            <MudIcon Icon="@Icons.Material.Filled.ShoppingCart" />
         </MudBadge>
     </MudIconButton>
 

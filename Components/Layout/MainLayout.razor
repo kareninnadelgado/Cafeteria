@@ -15,56 +15,56 @@
             <MudIconButton Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" OnClick="@DrawerToggle" />
             <MudText Typo="Typo.h6" Class="ml-2">Cafetería Escolar</MudText>
             <MudSpacer />
-            
+
             @if (esAdmin)
             {
 
-                <MudIconButton Icon="@Icons.Material.Filled.AdminPanelSettings" Color="Color.Inherit" OnClick='() => NavigationManager.NavigateTo("/admin-tools")' />
+                <MudIconButton Icon="@Icons.Material.Filled.AdminPanelSettings" Color="Color.Inherit"
+                               OnClick='() => NavigationManager.NavigateTo("/admin-tools")' />
 
             }
-            
+
             @* Carrito fijo para alumnos: se muestra fuera del AppBar (CSS position fixed) *@
             @if (AuthState.IsAuthenticated)
             {
                 <!-- de momento dejamos espacio en AppBar; el botón fijo se renderiza más abajo -->
             }
         </MudAppBar>
-        
+
         @* Botón fijo de carrito (solo alumnos) *@
         @if (AuthState.IsAuthenticated && !esAdmin)
         {
             <div class="fixed-cart">
-                <MudBadge Content="@CarritoService.TotalProductos" Color="Color.Error" Overlap="true" Visible="@(CarritoService.TotalProductos > 0)">
-                    <MudIconButton Icon="@Icons.Material.Filled.ShoppingCart" Color="Color.Primary" OnClick='() => NavigationManager.NavigateTo("/carrito")' />
+                <MudBadge Content="@CarritoService.TotalProductos" Color="Color.Error" Overlap="true"
+                          Visible="@(CarritoService.TotalProductos > 0)">
+                    <MudIconButton Icon="@Icons.Material.Filled.ShoppingCart"
+                                   OnClick='() => NavigationManager.NavigateTo("/carrito")' Style="color: #ffffff !important;" />
                 </MudBadge>
             </div>
         }
 
-        <MudDrawer @bind-Open="_drawerOpen" 
-           Elevation="2" 
-           Anchor="Anchor.Left" 
-           Variant="DrawerVariant.Responsive" 
-           PreserveOpenState="false">
+        <MudDrawer @bind-Open="_drawerOpen" Elevation="2" Anchor="Anchor.Left" Variant="DrawerVariant.Responsive"
+                   PreserveOpenState="false">
 
             <MudNavMenu>
                 <MudNavLink Href="/menu" Match="NavLinkMatch.Prefix">
                     <MudIcon Icon="@Icons.Material.Filled.RestaurantMenu" /> Menú
                 </MudNavLink>
-                
+
                 @if (AuthState.IsAuthenticated)
                 {
                     <MudNavLink Href="/mis-pedidos">
                         <MudIcon Icon="@Icons.Material.Filled.History" /> Mis Pedidos
                     </MudNavLink>
                 }
-                
+
                 @if (esAdmin)
                 {
                     <MudNavLink Href="/admin/pedidos">
                         <MudIcon Icon="@Icons.Material.Filled.DeliveryDining" /> Cocina (Pedidos)
                     </MudNavLink>
                 }
-                
+
                 @if (!AuthState.IsAuthenticated)
                 {
                     <MudNavLink Href="/login">
@@ -82,7 +82,7 @@
                 }
             </MudNavMenu>
         </MudDrawer>
-        
+
         <MudMainContent>
             <MudContainer Class="py-4">
                 @Body
@@ -107,7 +107,7 @@
         {
             await AuthState.CargarSesionDesdeLocalStorage();
             esAdmin = AuthState.IsAdmin;
-            
+
             if (AuthState.IsAuthenticated)
             {
                 // Sincroniza el gestor de estado con Firestore/Localstorage
@@ -133,7 +133,7 @@
     private void RederizarNavbar() => InvokeAsync(StateHasChanged);
 
     private void DrawerToggle() => _drawerOpen = !_drawerOpen;
-    
+
     private async Task CerrarSesion()
     {
         await AuthState.ClearUser();
@@ -156,6 +156,9 @@
     }
 
     @@media (max-width: 576px) {
-        .fixed-cart { top: 8px; right: 8px; }
+        .fixed-cart {
+            top: 8px;
+            right: 8px;
+        }
     }
 </style>
